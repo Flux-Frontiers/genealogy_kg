@@ -1,0 +1,56 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+        exclude: '\.ged$'
+      - id: end-of-file-fixer
+        exclude: '\.ged$'
+      - id: check-yaml
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: [--maxkb=1000]
+        exclude: '^(src|docs)/.*\.(png|jpg|jpeg|gif|pdf)$|^\.pycodekg/'
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.22
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+        exclude: '^\.claude/'
+        pass_filenames: false
+        always_run: true
+      - id: ruff-format
+        exclude: '^\.claude/'
+        pass_filenames: false
+        always_run: true
+
+  - repo: https://github.com/Yelp/detect-secrets
+    rev: v1.5.0
+    hooks:
+      - id: detect-secrets
+        args: [
+          '--baseline', '.secrets.baseline',
+          '--exclude-files', '\.(genealogykg|filetreekg|pycodekg|dockg|agentkg)/.*',
+        ]
+
+  # Local hooks call the venv directly, never `poetry run`: an inherited
+  # VIRTUAL_ENV from another repo would redirect `poetry run` silently.
+  # `ty` needs `--python .venv` as well, or it resolves site-packages from
+  # VIRTUAL_ENV regardless of which binary started it. See FLEET_STANDARDS.md.
+  - repo: local
+    hooks:
+      - id: ty
+        name: ty
+        entry: .venv/bin/ty check src/ --python .venv
+        language: system
+        pass_filenames: false
+        always_run: true
+      - id: pytest
+        name: pytest
+        entry: .venv/bin/pytest --tb=short -q
+        language: system
+        pass_filenames: false
+        always_run: true

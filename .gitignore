@@ -1,0 +1,194 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+pip-wheel-metadata/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+*.manifest
+*.spec
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# pipenv
+Pipfile.lock
+
+# PEP 582
+__pypackages__/
+
+# Celery stuff
+celerybeat-schedule
+celerybeat.pid
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+*.code-workspace
+
+# KGModule indices — exclude DBs/vectors, keep snapshots/
+
+.claude/plugins/marketplaces/
+commit.txt
+
+# OS / package manager
+.DS_Store
+uv.lock
+
+# === KG generated artifacts (normalized across the fleet) ===
+# Databases, vector indexes and model caches are transient and
+# reproducible. snapshots/ is TRACKED and must never be ignored --
+# never use a bare `**/.<ns>/` pattern here, it swallows snapshots too.
+
+**/.pycodekg/lancedb/
+**/.pycodekg/lancedb-*
+**/.pycodekg/*.sqlite
+**/.pycodekg/*.sqlite-shm
+**/.pycodekg/*.sqlite-wal
+**/.pycodekg/*.db
+**/.pycodekg/models
+
+**/.dockg/lancedb/
+**/.dockg/lancedb-*
+**/.dockg/*.sqlite
+**/.dockg/*.sqlite-shm
+**/.dockg/*.sqlite-wal
+**/.dockg/*.db
+**/.dockg/models
+**/.dockg/embeddings.json
+
+# AgentKG local store -- nothing under it is ever tracked
+**/.agentkg/
+
+**/.filetreekg/lancedb/
+**/.filetreekg/lancedb-*
+**/.filetreekg/*.sqlite
+**/.filetreekg/*.sqlite-shm
+**/.filetreekg/*.sqlite-wal
+**/.filetreekg/*.db
+**/.filetreekg/models
+
+**/.genealogykg/lancedb/
+**/.genealogykg/lancedb-*
+**/.genealogykg/*.sqlite
+**/.genealogykg/*.sqlite-shm
+**/.genealogykg/*.sqlite-wal
+**/.genealogykg/*.db
+**/.genealogykg/models
+**/.genealogykg/config.json
+
+# Agent scratch dirs (Claude Code / Codex)
+.agents/
+.codex/
+
+# GEDCOM sources are personal data. Track only tests/fixtures/*.ged.
+*.ged
+!tests/fixtures/*.ged
+
+# Public test corpora fetched by scripts/fetch_corpora.sh; never tracked.
+corpora/
+
+# MCP server config -- machine-specific, contains absolute paths
+.mcp.json
+.mcp.json.sav
+# === end KG generated artifacts ===
