@@ -145,22 +145,41 @@ class GenealogyKGAdapter(KGAdapter):
     def stats(self) -> dict[str, Any]:
         """Return live statistics for this instance.
 
-        :return: Dict with kind, node/edge counts, and person/family counts.
+        Field set matches ``kg_rag.adapters.genealogy_adapter``'s ``stats()``
+        -- the two are independent implementations against the same
+        contract, and kg-rag's orchestrator/UI code expects this shape
+        uniformly across every adapter it federates.
+
+        :return: Dict with kind, name, versions, availability, size, and
+            node/edge/person/family counts.
         """
         self._load()
         assert self._kg is not None
+        db_size = 0.0
+        if self.entry.sqlite_path and self.entry.sqlite_path.exists():
+            db_size = round(self.entry.sqlite_path.stat().st_size / 1_048_576, 2)
         try:
             s = self._kg.stats()
             counts = s.get("node_counts", {})
             return {
                 "kind": "genealogy",
+                "kg_name": self.entry.name,
+                "builder_version": self.entry.builder_version,
+                "available": True,
+                "db_size_mb": db_size,
                 "node_count": s.get("total_nodes", 0),
                 "edge_count": s.get("total_edges", 0),
                 "person_count": counts.get("person", 0),
                 "family_count": counts.get("family", 0),
             }
         except Exception as exc:  # noqa: BLE001 - stats() must not raise
-            return {"kind": "genealogy", "error": str(exc)}
+            return {
+                "kind": "genealogy",
+                "kg_name": self.entry.name,
+                "available": True,
+                "db_size_mb": db_size,
+                "error": str(exc),
+            }
 
     def analyze(self) -> str:
         """Return the Markdown analysis report.
