@@ -16,8 +16,8 @@ temporal contract.
 
 > **Status: pre-alpha.** `build`, `query`, `pack`, `analyze`, `status`,
 > ASCII lineage trees (`ancestors`/`descendants`), KGRAG federation, the
-> place hierarchy, the living-person filter, snapshots and the 2-D `viz`
-> charts all work end to end (Phase 1-4). 3-D visualization is Phase 5.
+> place hierarchy, the living-person filter, snapshots, the 2-D `viz` charts
+> and the 3-D `quilt`/`viz3d` renderer all work end to end (Phase 1-5).
 > See [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Overview

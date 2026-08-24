@@ -1,20 +1,17 @@
 # GenealogyKG design plan
 
 Author: Eric G. Suchanek, PhD
-Status: Phase 0 through 4 complete (Phase 4 on 2026-08-24) -- build/query/pack,
+Status: Phase 0 through 5 complete (Phase 5 on 2026-08-24) -- build/query/pack,
 lineage walks, ASCII family trees, KGRAG federation, the `WITHIN` place
 hierarchy, the living-person filter, Julian dates, the full `analyze()`
-report, snapshots, `install-hooks` and the 2-D pedigree/network views all
-work end to end. Phase 5 (viz3d/holographic) is roadmapped below but not
-started.
+report, snapshots, `install-hooks`, the 2-D pedigree/network views, and the
+organic-growth 3-D quilt/viz3d renderer all work end to end.
 
-Known defect, not introduced by Phase 4: `adapter.py` names
-`KGKind.GENEALOGY`, which arrived in kg-rag 0.15.0 (kgrag commit `3dcb9ab`,
-alongside `genealogy_adapter.py`). The `adapter` extra floors at
-`kg-rag>=0.14.0`, so it resolves to 0.14.0 and `query()`/`pack()` raise
-`AttributeError`. Raise the floor to `>=0.15.0` once that release is on PyPI.
-The adapter has no test coverage, which is why this went unnoticed through
-Phases 1-3.
+`adapter.py`'s `KGKind.GENEALOGY` defect (kg-rag `>=0.15.0` needed;
+`GenealogyKGAdapter.display()` is unreachable via `make_adapter()` in either
+direction) is resolved for the floor and documented as a standing limitation
+for `display()` -- see the Phase 4 notes below and
+`kgrag_priv/FLEET_SWEEP_PLAN.md`.
 
 GenealogyKG turns a GEDCOM file into a KGModule: a SQLite graph of people,
 families, events, places and sources, a sqlite-vec index over prose summaries
@@ -193,10 +190,15 @@ src/genealogy_kg/
   snapshots.py      GenealogySnapshotManager over kg_utils.snapshots
   mcp_server.py     FastMCP: query_genealogy, pack_genealogy, get_person,
                     ancestors, descendants, family_tree, graph_stats, analyze_genealogy
-  adapter.py        GenealogyKGAdapter for KGRAG (optional extra `adapter`)
+  adapter.py        GenealogyKGAdapter for KGRAG (optional extra `adapter`);
+                    display() unreachable via make_adapter(), kept as reference
   viz.py            2-D rendering: pedigree_figure() (plotly), network_html()
                     (the genealogy theme over kg_utils.viz.build_graph_html)
-  scene.py          viz3d attractor/limb/leaf mapping for the holographic stack (Phase 5, not started)
+  theme.py          Colours + generation_depths(), shared by viz.py and scene.py,
+                    dependency-free so either's extra installs alone
+  scene.py          family_tree_positions() (pure NumPy) + build_family_tree_scene()
+                    (grow_tree/tree_mesh/leaf_glyphs, or the schematic straight-line mode)
+  viz3d.py          FamilyTreeWindow: QtInteractor + one Cast-to-Looking-Glass action
   cli/
     group.py        root click group (`genkg`)
     options.py      shared --repo/--db/--vectors/--model/-k options
@@ -207,7 +209,7 @@ src/genealogy_kg/
     cmd_status.py   status
     cmd_snapshot.py snapshot save|list|show|diff
     cmd_hooks.py    install-hooks
-    cmd_viz.py      viz (--view pedigree|network); quilt lands here in Phase 5
+    cmd_viz.py      viz (--view pedigree|network); quilt, viz3d (both --schematic)
 ```
 
 Storage: `.genealogykg/graph.sqlite`, `.genealogykg/vectors.sqlite`,
@@ -376,7 +378,8 @@ turns a `GenealogyKG` into the shapes those libraries draw:
 4. `KGAdapter.display()`: `SEMANTIC` draws the descent chart from a
    progenitor, `ONTOLOGICAL` the network. Non-Streamlit backends and a missing
    `viz` extra both fall back to the base placeholder card rather than failing
-   the visualizer.
+   the visualizer. Written and tested, but see below -- kg-rag cannot reach
+   it yet.
 5. `pip install "genealogy-kg[viz]"`; nothing in `viz.py` is imported outside
    the `cli/cmd_viz.py` and `adapter.display()` entry points, so a bare install
    never pulls `plotly`/`pyvis`. A subprocess test asserts it, because this
@@ -392,42 +395,91 @@ vocabulary -- kinds, colours, tooltip fields -- exactly as
 render stack while never depending on the SDK extra where the code lives is
 what left `diary_kg`'s `viz3d` extra dead; see `FLEET_STANDARDS.md`.
 
-**Only this repo's `adapter.py` got the override.** The second copy does
-exist -- `kg_rag.adapters.genealogy_adapter`, added in kg-rag 0.15.0 -- but
-that release was still unpublished when this landed, so the environment here
-resolves 0.14.0, which has neither that module nor `KGKind.GENEALOGY`.
-Porting `display()` into the kg-rag copy is a follow-up in that repo, and it
-pairs with raising this repo's `adapter` floor to `>=0.15.0`. See the status
-note at the top.
+**`display()` is unreachable today, in either copy, and that is not fixable
+here.** `make_adapter()` maps `KGKind.GENEALOGY` to kg-rag's own
+`genealogy_adapter` through a hard-coded dict with no override hook, so this
+repo's copy is never the one federation instantiates. Porting the override
+into kg-rag does not help either: **nothing calls `display()` on the
+Streamlit path.** Its only live caller is kg-rag's Qt2D visualizer
+(`viz_qt.py:266`), `Viewport.streamlit_*()` has no call sites, and `app.py`
+uses adapters only for `is_available()`/`stats()`. Zero of kg-rag's 15
+adapters have ever overridden `display()`.
+
+The override is kept here anyway: it costs nothing, it runs if the adapter is
+constructed directly, and it is the reference for whenever the forest is
+wired. A port to kg-rag was written, tested and reverted unmerged rather than
+ship dead code -- with a note that the per-adapter shape should *not* be the
+template, since only two of its ~75 lines are domain-specific. The design for
+doing it properly (a primitives-only render hook on `KGAdapter`, and an
+entry-point adapter registry) is in `kgrag_priv/FLEET_SWEEP_PLAN.md`.
 
 25 new tests (108 total).
 
-### Phase 5: viz3d -- the family tree, literally (0.5.0)
+### Phase 5: viz3d -- the family tree, literally (0.5.0) -- done 2026-08-24
 
-Grow the graph with `kg_utils.viz3d.organic` and render a quilt with
-`quiltwright`: the root couple as trunk, each family a limb, each person a
-leaf placed by birth year along the limb, leaf colour by generation, canopy
-density by branch fecundity (children per couple) -- attractors are real
+Grows `xref`'s descent line with `kg_utils.viz3d.organic` and renders a
+quilt with `quiltwright`: `xref` (plus spouse(s)) as trunk, each family a
+limb, each person a leaf clustered around their birth family's limb tip,
+ordered within the cluster by birth year, leaf colour by generation (default)
+or sex, cluster radius scaled by children per couple -- attractors are real
 genealogical data, so the canopy's shape *is* the family's shape, per the
-visualization stack's own organic-growth premise. `scene.py` is the only
-new code; layers 1-2 (`kg_utils.viz3d.organic`, `quiltwright`) are the
-shared fleet stack and are never reimplemented here --
+visualization stack's own organic-growth premise. `scene.py` is the only new
+module; layers 1-2 (`kg_utils.viz3d.organic`, `quiltwright`) are the shared
+fleet stack and are never reimplemented here --
 `kgrag_priv/docs/VISUALIZATION_STACK.md` is the canonical reference, and
 `gutenberg_kg`'s `scene.py`/`cli/cmd_quilt.py` and `pycode_kg`'s
-repo-to-trunk mapping are the pattern to follow.
+module-to-limb mapping (`scene3d.py`) are the patterns `scene.py` follows.
 
-1. `scene.py`: root couple -> trunk seed, each `family` node -> a limb
-   attractor, each `person` leaf placed along its parent limb by
-   `occurred_start` year (falls back to generation depth when undated).
-2. `cli/cmd_viz.py` gains `quilt`: `genkg quilt <xref> --preset
-   <name>` -> a Looking Glass light-field quilt via `render_quilt`.
-3. `pip install "genealogy-kg[viz3d]"` (PyVista-backed, heavy); declare
-   `"quiltwright>=0.4.0"` unmarked, per the fleet's current floor.
+1. `scene.py`: `family_tree_positions()` -- pure NumPy, no PyVista import --
+   places the trunk, every limb, and every leaf; `build_family_tree_scene()`
+   composes that layout through `grow_tree` -> `tree_mesh` -> `leaf_glyphs`
+   (organic mode) or straight trunk/branch/twig lines plus sphere glyphs
+   (schematic mode, `organic=False`) into a caller-supplied `pv.Plotter`.
+2. `cli/cmd_viz.py` gains `quilt` (`genkg quilt <xref> --preset <name>
+   [--schematic]` -> a Looking Glass quilt via `render_quilt`) and `viz3d`
+   (`genkg viz3d <xref> [--schematic]` -> an interactive PyQt5/pyvistaqt
+   window with orbit/zoom/pan and a Cast-to-Looking-Glass action).
+   `viz3d.py` is that window: deliberately much smaller than
+   `gutenberg_kg`'s/`pycode_kg`'s (~1500 lines each) -- no custom picking, no
+   info popups, no filter toggles, since `QtInteractor` supplies orbit/zoom/pan
+   for free and `kg_utils.viz3d.qt.cast_scene_to_looking_glass` does the
+   entire cast in one call.
+3. `pip install "genealogy-kg[viz3d]"` (PyVista/PyQt5-backed, heavy);
+   `quiltwright>=0.8.0`.
 
-Not started. No target version beyond "after Phase 4 ships and there is a
-`viz.py` layout worth lifting into 3-D" -- 3-D placement logic that has
-never been checked against a working 2-D layout first is the way to
-discover a coordinate-system bug at the most expensive possible point.
+Two things landed differently from the sketch above, both discovered by
+testing against a real corpus rather than the 12-person fixture -- exactly
+the payoff Phase 5 was sequenced after Phase 4 to get.
+
+**`xref` founds the tree; auto-detecting "the root couple" was dropped.**
+A GEDCOM can hold several unrelated lines, and a person can have two ancestor
+chains (through each parent) with no single well-defined progenitor to
+find. `xref` plus every descendant plus every spouse who married in is
+unambiguous and matches every other `genkg` command's convention.
+
+**The population walk needed a dedicated forward-only closure, not reused
+`generation_depths()`.** The first version filtered Phase 4's
+`generation_depths()` (bidirectional -- built for "generation distance from
+whoever I clicked on") to non-negative offsets, on the theory that this was
+exactly the descent line. Wrong on a real corpus: for a person with recorded
+parents, that walk climbs to them and back down through every *sibling's*
+own line. Confirmed against the Kennedy corpus (`corpora/gedcom-samples`) --
+it pulled in 86 collateral relatives for a person with no descendants of
+their own, and the corrected walk changed a 183-person tree to the true
+120. `scene._descendant_population()` is the fix: children and married-in
+spouses only, never a step to a parent. `generation_depths()` is still used,
+correctly, for leaf colouring on the already-correctly-scoped population.
+
+The **schematic mode** (`organic=False`) was added after the organic
+renderer, once seeing it render made plain how expensive and slow organic
+growth is to iterate on for a large family, and how useful a cheap
+straight-line diagram is as a sanity check on the layout that organic mode
+then grows wood toward -- the same relationship `gutenberg_kg`'s
+`--schematic` flag has to its own organic render. Both modes draw the same
+`family_tree_positions()` output; only the connecting geometry and person
+glyphs differ.
+
+26 new tests (134 total).
 
 ## Not in scope
 
