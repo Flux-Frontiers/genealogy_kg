@@ -276,7 +276,7 @@ def quilt(
     plotter.camera.position = frame.position
     plotter.camera.focal_point = frame.focal_point
     plotter.camera.up = frame.up
-    plotter.reset_camera()
+    plotter.reset_camera()  # ty: ignore[missing-argument]
 
     click.echo(
         depth_report(
