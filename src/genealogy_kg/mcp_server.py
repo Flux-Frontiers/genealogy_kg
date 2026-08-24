@@ -48,8 +48,8 @@ mcp = FastMCP(
 def query_genealogy(q: str, k: int = 8) -> str:
     """Search the genealogy graph and return ranked nodes as JSON.
 
-    :param q: Natural-language query.
-    :param k: Maximum number of seed hits.
+    :param q: Natural-language query. Must be non-empty, at most 500 characters.
+    :param k: Maximum number of seed hits, 1-100.
     :return: JSON-encoded QueryResult.
     """
     return _get_kg().query(q, k=k).to_json()
@@ -59,9 +59,9 @@ def query_genealogy(q: str, k: int = 8) -> str:
 def pack_genealogy(q: str, k: int = 8, max_nodes: int = 15) -> str:
     """Return the GEDCOM records behind the nodes matching a query.
 
-    :param q: Natural-language query.
-    :param k: Number of seed hits.
-    :param max_nodes: Maximum nodes in the pack.
+    :param q: Natural-language query. Must be non-empty, at most 500 characters.
+    :param k: Number of seed hits, 1-100.
+    :param max_nodes: Maximum nodes in the pack, 1-500.
     :return: Markdown snippet pack with line-numbered GEDCOM records.
     """
     return _get_kg().pack(q, k=k, max_nodes=max_nodes).to_markdown()
@@ -71,7 +71,7 @@ def pack_genealogy(q: str, k: int = 8, max_nodes: int = 15) -> str:
 def get_person(xref: str) -> str:
     """Return one person node by GEDCOM xref.
 
-    :param xref: Individual xref without ``@``, for example ``I7``.
+    :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
     :return: JSON node dict, or ``null``.
     """
     return json.dumps(_get_kg().person(xref), indent=2, ensure_ascii=False)
@@ -81,14 +81,12 @@ def get_person(xref: str) -> str:
 def ancestors(xref: str, generations: int = 4) -> str:
     """Return the ancestors of a person, nearest generation first.
 
-    :param xref: Individual xref without ``@``.
-    :param generations: Maximum generations to climb.
+    :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
+    :param generations: Maximum generations to climb, 1-50.
     :return: JSON list of person nodes with a ``generation`` key.
     """
-    from genealogy_kg.lineage import ancestors as _ancestors
-
     return json.dumps(
-        _ancestors(_get_kg().store, f"person:{xref}", generations=generations),
+        _get_kg().ancestors(xref, generations=generations),
         indent=2,
         ensure_ascii=False,
     )
@@ -98,14 +96,12 @@ def ancestors(xref: str, generations: int = 4) -> str:
 def descendants(xref: str, generations: int = 4) -> str:
     """Return the descendants of a person, nearest generation first.
 
-    :param xref: Individual xref without ``@``.
-    :param generations: Maximum generations to descend.
+    :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
+    :param generations: Maximum generations to descend, 1-50.
     :return: JSON list of person nodes with a ``generation`` key.
     """
-    from genealogy_kg.lineage import descendants as _descendants
-
     return json.dumps(
-        _descendants(_get_kg().store, f"person:{xref}", generations=generations),
+        _get_kg().descendants(xref, generations=generations),
         indent=2,
         ensure_ascii=False,
     )
@@ -115,9 +111,9 @@ def descendants(xref: str, generations: int = 4) -> str:
 def family_tree(xref: str, direction: str = "descendants", generations: int = 4) -> str:
     """Render an ASCII family tree rooted at a person.
 
-    :param xref: Individual xref without ``@``, for example ``I1``.
+    :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
     :param direction: ``"descendants"`` (default) or ``"ancestors"``.
-    :param generations: Maximum generations to walk.
+    :param generations: Maximum generations to walk, 1-50.
     :return: The rendered tree as plain text.
     """
     return str(_get_kg().tree(xref, direction=direction, generations=generations))

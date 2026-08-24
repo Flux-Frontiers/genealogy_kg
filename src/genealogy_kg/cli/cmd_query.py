@@ -11,7 +11,7 @@ from pathlib import Path
 import click
 
 from genealogy_kg.cli.group import cli
-from genealogy_kg.cli.options import db_option, k_option, repo_option, vectors_option
+from genealogy_kg.cli.options import db_option, hop_option, k_option, repo_option, vectors_option
 from genealogy_kg.module import GenealogyKG
 
 
@@ -29,10 +29,13 @@ def _kg(repo: str, db: str | None, vectors: str | None) -> GenealogyKG:
 @db_option
 @vectors_option
 @k_option
-@click.option("--hop", default=1, show_default=True, help="Graph expansion hops.")
+@hop_option
 def query(q: str, repo: str, db: str | None, vectors: str | None, k: int, hop: int) -> None:
     """Search the graph and print ranked nodes as JSON."""
-    result = _kg(repo, db, vectors).query(q, k=k, hop=hop)
+    try:
+        result = _kg(repo, db, vectors).query(q, k=k, hop=hop)
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
     click.echo(result.to_json())
 
 
@@ -47,7 +50,10 @@ def pack(
     q: str, repo: str, db: str | None, vectors: str | None, k: int, output: str | None
 ) -> None:
     """Print the GEDCOM records behind a query as a Markdown snippet pack."""
-    md = _kg(repo, db, vectors).pack(q, k=k).to_markdown()
+    try:
+        md = _kg(repo, db, vectors).pack(q, k=k).to_markdown()
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
     if output:
         Path(output).write_text(md, encoding="utf-8")
         click.echo(f"Wrote {output}")
