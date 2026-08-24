@@ -2,10 +2,11 @@
 
 No real family export exists for this project, and one would be personal
 data anyway. Development and testing run against public GEDCOM files fetched
-by `scripts/fetch_corpora.sh` into `corpora/`, which is gitignored. The only
-GEDCOMs tracked in this repo are the fictional `tests/fixtures/sample.ged`
-and the three public-domain-era historical trees under `corpora/vendored/`
-(below) -- everything else in `corpora/` is fetched, never committed.
+by `scripts/fetch_corpora.sh` into `corpora/`, which is gitignored except for
+`corpora/entries/`. The only GEDCOMs tracked in this repo are the fictional
+`tests/fixtures/sample.ged` and the 98 public-domain-era trees under
+`corpora/entries/` (below) -- everything else in `corpora/` is fetched,
+never committed.
 
 Surveyed 2026-08-23 with ged4py 0.5.2: 108 files fetched, 105 parse.
 
@@ -65,21 +66,32 @@ standard allows. ged4py warns once per file and reads them as cp1252 or
 cp437. The extractor should surface that warning in `build` output rather
 than hide it.
 
-## Vendored famous-tree demos
+## The curated corpus: `corpora/entries/`
 
-`corpora/vendored/` is tracked, not fetched -- see
-`corpora/vendored/NOTICE.md` for the licensing basis, the person-by-person
-living-check every file here passed, and why `royal92.ged` was vendored and
-then removed on that same check (its own root looks historical, but growing
-his descent line walks straight into the living modern royal families).
-Used by `make famous-bronte`; `washington/` and `tudor/` have no dedicated
-target yet. `make famous-royal` stays fetch-only.
+`corpora/entries/<genre>/<slug>/` is tracked, not fetched -- see
+[corpora/entries/NOTICE.md](../corpora/entries/NOTICE.md). It supersedes
+what used to be a hand-picked `corpora/vendored/` of three trees
+(`bronte`, `washington`, `tudor`), each checked person-by-person for
+living-person exposure before being let in. That approach hit its limit at
+`royal92.ged`: its own root (William the Conqueror, d. 1087) looks
+historical, but his descent line walks straight into the living modern
+European royal families -- vendored, then removed on that same check.
+
+The safety boundary is now the living-person filter itself, enforced at
+the query/pack/MCP boundary (`GedcomExtractor.is_living()`, through
+`pack()`) rather than which files are let into the repo. That's what let
+the corpus grow to its current 98 trees across 10 genres -- `royal92.ged`
+included, per the table below -- without re-doing a person-by-person audit
+of each one. `genkg corpus survey`/`ingest` (see the main
+[README](../README.md#the-curated-corpus)) build and register them; the
+three originally-vendored trees are still in here, at new paths:
 
 | File | People | Root xref |
 |---|---|---|
-| `corpora/vendored/bronte/bronte.ged` | 14 | `I0001` |
-| `corpora/vendored/washington/washington.ged` | 529 | `I3` |
-| `corpora/vendored/tudor/EnglishTudorRoyalFamily.ged` | 347 | `I1` |
+| `corpora/entries/samples/bronte/bronte.ged` | 14 | `I0001` |
+| `corpora/entries/us-presidents/washington/washington.ged` | 529 | `I3` |
+| `corpora/entries/royalty/tudor/EnglishTudorRoyalFamily.ged` | 347 | `I1` |
+| `corpora/entries/royalty/royal92-famous-european-royalty-gedcom/*.ged` | 3,010 | -- |
 
 ## Licensing
 
@@ -89,15 +101,17 @@ target yet. `make famous-royal` stays fetch-only.
   without stated terms.
 - **The torture test** (H. Eichmann 1997, modified by J. A. Nairn
   1999-2001): "Feel free to copy and use this GEDCOM file for any
-  non-commercial purpose." Fetched, never vendored, never shipped in a
-  wheel or a test fixture.
+  non-commercial purpose." Now committed under `corpora/entries/torture/`
+  (its four variants exercise every 5.5 tag, ANSEL, and both line-ending
+  conventions -- see the development-set table above).
 - **Gramps `sample.ged`** lives in a GPL-2.0 repository. It is data, not
-  code, and is used here as test input only.
+  code, and is used here as test input only, and is not committed.
 
-None of these files may be added to the repository, with the sole exception
-of the three vendored under `corpora/vendored/` (above), each checked
-person-by-person for anyone born after 1920 with no recorded death.
-`*.ged` is gitignored outside `tests/fixtures/` and `corpora/vendored/`, and
+Only the D-Jeffrey/gedcom-samples-derived and torture-test files under
+`corpora/entries/` (above) are committed to the repository -- royal92
+included, under the query/pack/MCP-boundary safety model, not a
+person-by-person exclusion list.
+`*.ged` is gitignored outside `tests/fixtures/` and `corpora/entries/`, and
 the rest of `corpora/` is gitignored whole.
 
 ## Refreshing
