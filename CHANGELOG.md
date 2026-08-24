@@ -9,6 +9,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 3: hygiene and analysis. `WITHIN` edges give every comma-separated
+  `PLAC` level its own `place` node (`Cincinnati, Hamilton, Ohio, USA` ->
+  `Hamilton, Ohio, USA` -> `Ohio, USA` -> `USA`), excluded from the
+  default expansion rels like `CITES`. `[tool.genealogykg]
+  living_cutoff_years` (or `GenealogyKG(living_cutoff_years=N)`) redacts
+  people without a death record born within N years of today to a bare
+  `Living` node, withholds their name from every other node's prose, and
+  drops a living couple's marriage details; off unless set. Julian dates
+  convert to Gregorian at day precision via `convertdate`. `person` nodes
+  carry a `surname` metadata key. `analysis.py` and
+  `GenealogyKG.analysis()` produce the data behind a fuller `analyze()`
+  report: generation depth, surname distribution, date coverage per kind,
+  people with no family links, places with no hierarchy, redacted count.
+  `snapshots.py` records those metrics over `kg_utils.snapshots`, with
+  people/families/events/places deltas; `genealogykg snapshot
+  save|list|show|diff` and `genealogykg install-hooks` (quality checks on
+  every commit, snapshot only under `GENEALOGYKG_SNAPSHOT=1`). 25 new
+  tests (83 total).
 - Phase 2: `ancestors`/`descendants`/`kinship_path` lineage walks over
   `GraphStore`, and `ascii_tree()`/`FamilyTree` -- a pure-ASCII
   (`+--`/`` `-- ``/`|`, never Unicode box-drawing) family-tree renderer

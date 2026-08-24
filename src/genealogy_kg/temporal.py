@@ -6,9 +6,13 @@ The one derivation of the fleet temporal contract from GEDCOM dates.
 ``kg_utils.temporal.temporal_metadata`` and, together with
 :func:`person_temporal_keys`, is the only place in this package that turns a
 GEDCOM date into ``occurred_start`` / ``occurred_end`` / ``recorded_at``.
-Malformed or unsupported dates (non-Gregorian calendars, BC years -- the
-fleet contract's ISO strings have no negative-year form, free-text phrases)
-resolve to nothing rather than raising.
+Julian dates are converted to Gregorian with ``convertdate`` (a ged4py
+dependency) at day precision; coarser Julian dates pass through unchanged,
+since the two calendars differ by at most 13 days in the years GEDCOM files
+cover. Malformed or unsupported dates (Hebrew and French Republican
+calendars, BC years -- the fleet contract's ISO strings have no
+negative-year form, free-text phrases) resolve to nothing rather than
+raising.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
@@ -18,6 +22,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from convertdate import julian
 from ged4py.calendar import MONTHS_GREG, CalendarType
 from ged4py.date import DateValueTypes
 from kg_utils.temporal import temporal_metadata
@@ -56,18 +61,19 @@ _QUALIFIERS: dict[DateValueTypes, str] = {
 def iso_date(calendar_date: Any | None) -> str | None:
     """Convert a ged4py ``CalendarDate`` to an ISO-8601 string.
 
-    Gregorian only, matching what ``kg_utils.temporal.parse_temporal``
-    accepts (``YYYY``, ``YYYY-MM`` or ``YYYY-MM-DD``, no BC form). Julian,
-    Hebrew and French Republican calendars, and BC years, return ``None`` in
-    Phase 1; conversion via ``convertdate`` (already a ged4py dependency) is
-    Phase 3 work.
+    Gregorian and Julian only, matching what ``kg_utils.temporal.parse_temporal``
+    accepts (``YYYY``, ``YYYY-MM`` or ``YYYY-MM-DD``, no BC form). A Julian
+    date with a day is converted to the proleptic Gregorian calendar; a
+    Julian year or year-month is kept as written, the offset between the
+    calendars being smaller than that precision. Hebrew and French
+    Republican calendars, and BC years, return ``None``.
 
     :param calendar_date: A ged4py ``CalendarDate``, or ``None``.
     :return: ISO-8601 string at the precision the source supports, or ``None``.
     """
-    if calendar_date is None or calendar_date.calendar != CalendarType.GREGORIAN:
+    if calendar_date is None or calendar_date.bc:
         return None
-    if calendar_date.bc:
+    if calendar_date.calendar not in (CalendarType.GREGORIAN, CalendarType.JULIAN):
         return None
     year = calendar_date.year
     if not calendar_date.month:
@@ -76,9 +82,15 @@ def iso_date(calendar_date: Any | None) -> str | None:
         month = MONTHS_GREG.index(calendar_date.month) + 1
     except ValueError:
         return f"{year:04d}"
-    if not calendar_date.day:
+    day = calendar_date.day
+    if not day:
         return f"{year:04d}-{month:02d}"
-    return f"{year:04d}-{month:02d}-{calendar_date.day:02d}"
+    if calendar_date.calendar == CalendarType.JULIAN:
+        try:
+            year, month, day = julian.to_gregorian(year, month, day)
+        except ValueError:  # a day the Julian calendar does not have
+            return None
+    return f"{year:04d}-{month:02d}-{day:02d}"
 
 
 def date_qualifier(date_value: Any | None) -> str | None:

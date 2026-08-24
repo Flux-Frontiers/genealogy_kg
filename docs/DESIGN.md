@@ -1,10 +1,11 @@
 # GenealogyKG design plan
 
 Author: Eric G. Suchanek, PhD
-Status: Phase 0, 1 and 2 complete (2026-08-23) -- build/query/pack, lineage
-walks, ASCII family trees, and KGRAG federation all work end to end. Phase 3
-(hygiene/analysis) not started. Phases 4 (2-D viz) and 5 (viz3d/holographic)
-are roadmapped below but not started.
+Status: Phase 0 through 3 complete (2026-08-23) -- build/query/pack, lineage
+walks, ASCII family trees, KGRAG federation, the `WITHIN` place hierarchy,
+the living-person filter, Julian dates, the full `analyze()` report,
+snapshots and `install-hooks` all work end to end. Phases 4 (2-D viz) and 5
+(viz3d/holographic) are roadmapped below but not started.
 
 GenealogyKG turns a GEDCOM file into a KGModule: a SQLite graph of people,
 families, events, places and sources, a sqlite-vec index over prose summaries
@@ -90,7 +91,20 @@ A GEDCOM file is personal data about living relatives. `.gitignore` excludes
 `*.ged` everywhere except `tests/fixtures/`, and the fixture is fictional.
 The build never copies the source into `.genealogykg/`; `pack()` reads it in
 place, so deleting the file removes the data from every path that could
-reveal it. A living-person filter is Phase 3 work, not a Phase 1 promise.
+reveal it.
+
+The living-person filter (Phase 3) is `[tool.genealogykg]
+living_cutoff_years = N`, or `GenealogyKG(living_cutoff_years=N)`. Off
+unless set. A person with no `DEAT`/`BURI` record whose birth (fallback
+`BAPM`, `CHR`) falls within `N` years of today becomes a bare `person` node
+named `Living`: xref, sex and lineage edges kept (so trees still walk
+through them), name, dates, events, notes, citations and `surname` dropped,
+and their name withheld from every other node's prose -- family names,
+children lists, spouse phrases, parents. A family with a living spouse also
+drops its `MARR` date, place, event and temporal keys. Two limits, both
+documented rather than papered over: a person with no birth date at all is
+never redacted (the rule needs a year to compare), and `pack()` reads the
+GEDCOM file in place, so a redacted store must travel without the file.
 
 ## Graph model
 
@@ -124,7 +138,7 @@ byte offsets. That is all `pack()` needs to return the original record.
 | `HAS_EVENT` | person or family | event | |
 | `OCCURRED_AT` | event | place | |
 | `CITES` | person, family or event | source | `SOUR` pointers at any level |
-| `WITHIN` | place | place | comma-split hierarchy. Phase 3. |
+| `WITHIN` | place | place | comma-split hierarchy: `Cincinnati, Hamilton, Ohio, USA` -> `Hamilton, Ohio, USA` -> `Ohio, USA` -> `USA`, each level its own `place` node, emitted the first time any string reaches it. Excluded from the default expansion rels, like `CITES`, so a hit on a country does not pull in every place inside it. |
 
 Ancestors walk `PARENT_OF` inbound (`GraphStore.callers_of`), descendants
 walk it outbound (`GraphStore.edges_from`). No second edge kind is needed.
@@ -146,7 +160,8 @@ author twice" rule.
 | `AFT 1930` | `occurred_start=1930` only |
 | `BET 1899 AND 1901`, `FROM 1846 TO 1850` | start and end |
 | phrase (`(before the war)`) | `{}`; raw text stays in `date_raw` |
-| Julian, Hebrew, French Republican | `{}` in Phase 1; convert in Phase 3 |
+| `@#DJULIAN@ 1 MAR 1700` | `occurred_start=1700-03-12`: converted with `convertdate.julian` at day precision; Julian year and year-month pass through unchanged (the calendars differ by less than that) |
+| Hebrew, French Republican, BC years | `{}`; still deferred |
 
 Person nodes get `occurred_start` from `BIRT` (fallback `BAPM`, `CHR`) and
 `occurred_end` from `DEAT` (fallback `BURI`). Family nodes get `MARR`. Event
@@ -161,10 +176,11 @@ src/genealogy_kg/
   gedcom.py         thin reader over ged4py: records, line spans, name/place/date helpers
   temporal.py       temporal_keys()/person_temporal_keys(): ged4py DateValue -> kg_utils.temporal
   extractor.py      GedcomExtractor(KGExtractor): the graph model above
-  module.py         GenealogyKG(KGModule): kind(), analyze(), rels defaults, tree()
+  module.py         GenealogyKG(KGModule): kind(), analysis()/analyze(), rels defaults, tree()
   lineage.py        ancestors(), descendants(), kinship_path(), ascii_tree()/FamilyTree
-  config.py         [tool.genealogykg] sources + .genealogykg/config.json
-  snapshots.py      GenealogySnapshotManager over kg_utils.snapshots (Phase 3)
+  analysis.py       analyze_graph()/render_report(): the analyze() data and its Markdown
+  config.py         [tool.genealogykg] sources + living_cutoff_years, .genealogykg/config.json
+  snapshots.py      GenealogySnapshotManager over kg_utils.snapshots
   mcp_server.py     FastMCP: query_genealogy, pack_genealogy, get_person,
                     ancestors, descendants, family_tree, graph_stats, analyze_genealogy
   adapter.py        GenealogyKGAdapter for KGRAG (optional extra `adapter`)
@@ -178,7 +194,8 @@ src/genealogy_kg/
     cmd_lineage.py  ancestors, descendants (both print an ASCII tree)
     cmd_analyze.py  analyze
     cmd_status.py   status
-    cmd_snapshot.py snapshot save|list|show|diff (Phase 3)
+    cmd_snapshot.py snapshot save|list|show|diff
+    cmd_hooks.py    install-hooks
     cmd_viz.py      viz, quilt (Phase 4/5, not started)
 ```
 
@@ -259,24 +276,27 @@ with their public signatures and raise `NotImplementedError`.
    the three MCP tool kind-filter enums. Landed as `kgrag` commit
    `3dcb9ab`, not a public TODO.
 
-   **Finding surfaced while writing `genealogy_adapter.py`, not fixed
-   there:** `kg_rag.adapters.ftree_adapter.FTreeKGAdapter` reads a node's
-   score from a top-level `score` key and its id from `node_id`, and reads
-   `SnippetPack.snippets`. Verified live against `kg_utils.pipeline.
-   KGModule.query()`/`.pack()` (the base class every sibling KG, including
-   this one, actually subclasses): the score lives at
-   `node["relevance"]["score"]`, the id at `node["id"]`, and the packed
-   text at `node["snippet"]` -- `SnippetPack.snippets` is always `[]`. That
-   means `FTreeKGAdapter.query()` reports every hit's `node_id` as `""`,
-   `min_score`/`semantic_floor` filtering there is a permanent no-op, and
-   `.pack()` always returns `[]`. `diary_adapter.py` and `agent_adapter.py`
-   read `node_id` the same stale way and are worth checking too, though
-   that wasn't verified here. `genealogy_adapter.py` (both copies -- this
-   repo's and kg-rag's) was written against the confirmed-live shape
-   instead and pins it with tests. Filed in `kgrag_priv/FLEET_SWEEP_PLAN.md`
-   as a dedicated fix, not attempted here -- out of scope for this change,
-   and touching a live adapter three other kinds share deserves its own
-   pass, not a drive-by edit.
+   **A wrong finding, corrected the same day.** Writing
+   `genealogy_adapter.py` required knowing the shape
+   `kg_utils.pipeline.KGModule.query()`/`.pack()` return (`node["id"]`,
+   `node["relevance"]["score"]`, `node["snippet"]`), and this document
+   originally claimed `kg_rag.adapters.ftree_adapter.FTreeKGAdapter` was
+   broken for still reading the older `node_id`/top-level-`score`/
+   `.snippets` shape -- on the assumption that every `KGModule` subclass
+   returns the shared base shape. It does not: `FileTreeKG` overrides
+   `query()`/`pack()` itself and deliberately keeps the older shape for
+   backward compatibility (its own `module.py` docstrings say so). A real
+   `FileTreeKG` build confirmed `node_id` and `score` were already correct
+   there. The one genuine defect: `FTreeKGAdapter.pack()` built
+   `CrossSnippet` without `metadata=`, even though `FileTreeKG.pack()`
+   populates it on every snippet and `query()`'s `CrossHit` already read
+   it -- so a `time_range`-scoped `pack()` call saw every FTreeKG snippet
+   as undated. Fixed in `kgrag` commit `4ecd0cc` (one line, two regression
+   tests), CHANGELOG corrected there to retract the false claim.
+   `diary_adapter.py` and `agent_adapter.py` were checked the same way
+   (their backends' actual `query()`/`pack()` source, not assumed) and are
+   correct: both genuinely return `node_id`/`score` at the top level by
+   design, unrelated to `kg_utils.pipeline`'s shape.
 5. Deliberately not built this phase: a dedicated federated
    time-scoped-query test (ftree_kg's `test_temporal_contract.py` pattern).
    That needs `kg-rag` installed, which is the `adapter` extra, not the
@@ -289,17 +309,39 @@ with their public signatures and raise `NotImplementedError`.
    real query/pack/stats/analyze/snapshot round trip) -- confirmed working,
    just not wired into CI.
 
-### Phase 3: hygiene and analysis (0.3.0)
+### Phase 3: hygiene and analysis (0.3.0) -- done 2026-08-23
 
-1. `WITHIN` place hierarchy.
-2. Living-person filter: `[tool.genealogykg] living_cutoff_years = 100`
-   redacts names and dates of anyone without a death event born after the
-   cutoff. Off by default; documented as the switch to flip before sharing a
-   store.
-3. Julian calendar conversion via `convertdate` (already a ged4py dependency).
-4. `analyze()` report: generation depth, surname distribution, date coverage
-   per kind, people with no family links, places with no hierarchy.
-5. `snapshots.py` and `genealogykg install-hooks` for corpus repos.
+1. `WITHIN` place hierarchy, emitted by the extractor as described in the
+   edge table. On the fixture, `Ohio, USA` and `USA` appear once each and
+   both Cincinnati and Dayton sit `WITHIN` them.
+2. Living-person filter, as described under "Source files are private by
+   default". Tested with a 200-year cutoff on the fixture: five people
+   without death records born after 1826 are redacted, the two with
+   `AFT`/plain death dates are not, and their names appear nowhere else
+   in the graph.
+3. Julian conversion in `temporal.iso_date()` via `convertdate.julian`,
+   day precision only. ged4py rejects dual years (`1699/00`) outside the
+   Gregorian calendar, so there is no dual-year case to handle. Hebrew and
+   French Republican stay unplaced; `convertdate` can do both, but the
+   month-name mapping deserves its own verified table rather than a
+   drive-by.
+4. `analysis.py`: `analyze_graph()` returns the data (counts, generation
+   depth as the longest `PARENT_OF` chain with cycle cut-off, surname
+   distribution from the new `surname` metadata key, date coverage per
+   dated kind, people with no `CHILD_IN`/`SPOUSE_IN` edge, places with no
+   `WITHIN` edge in either direction, redacted-person count) and
+   `render_report()` the Markdown. `GenealogyKG.analysis()` exposes the
+   dict; `analyze()` still never raises. Snapshots record the same numbers.
+5. `snapshots.py`: `GenealogySnapshotManager.capture_genealogy(stats,
+   analysis)` over `kg_utils.snapshots`, with people/families/events/places
+   deltas beside the shared node/edge ones and the `diary_kg`-style
+   `get_previous()` fallback so an unsaved capture already carries
+   `vs_previous`. `genealogykg snapshot save|list|show|diff` and
+   `genealogykg install-hooks` (quality checks on every commit; the
+   rebuild-and-snapshot step only under `GENEALOGYKG_SNAPSHOT=1`, per
+   `kgrag_priv/docs/SNAPSHOT_STRATEGY.md`).
+
+25 new tests (83 total).
 
 ### Phase 4: viz -- 2-D family-tree diagrams (0.4.0)
 

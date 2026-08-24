@@ -3,7 +3,7 @@
 GedcomExtractor -- KGExtractor that turns a GEDCOM file into the graph model
 described in docs/DESIGN.md: ``person``, ``family``, ``event``, ``place`` and
 ``source`` nodes; ``CHILD_IN``, ``SPOUSE_IN``, ``PARENT_OF``, ``MARRIED_TO``,
-``HAS_EVENT``, ``OCCURRED_AT`` and ``CITES`` edges.
+``HAS_EVENT``, ``OCCURRED_AT``, ``CITES`` and ``WITHIN`` edges.
 
 Lineage edges (``CHILD_IN``, ``PARENT_OF``, ``SPOUSE_IN``, ``MARRIED_TO``)
 are derived exactly once, from each ``FAM`` record's ``HUSB``/``WIFE``/
@@ -14,13 +14,22 @@ would just emit the same edges twice.
 Extraction is deterministic: node ids derive from GEDCOM xrefs and tags, and
 records are emitted in file order.
 
+Living-person redaction (``living_cutoff_years``): a person with no death or
+burial record whose birth (or baptism/christening) falls within that many
+years of today is emitted as a bare ``person`` node named ``Living`` -- no
+name, dates, events, notes or citations -- and their name is withheld from
+every other node's prose too. Off unless configured. Note that ``pack()``
+reads the GEDCOM file in place, so the file itself must not travel with a
+redacted store.
+
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
 """
 
 from __future__ import annotations
 
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -40,7 +49,11 @@ EDGE_KINDS: tuple[str, ...] = (
     "HAS_EVENT",
     "OCCURRED_AT",
     "CITES",
+    "WITHIN",
 )
+
+#: Name and qualname given to a redacted living person.
+LIVING_NAME = "Living"
 
 _EVENT_LABELS: dict[str, str] = {
     "BIRT": "Birth",
@@ -80,12 +93,26 @@ def _first_event(rec: Any, tags: tuple[str, ...]) -> Any | None:
     return None
 
 
+def place_hierarchy(place: str) -> list[str]:
+    """Split a comma-separated ``PLAC`` string into its enclosing places.
+
+    :param place: ``"Cincinnati, Hamilton, Ohio, USA"``.
+    :return: ``["Cincinnati, Hamilton, Ohio, USA", "Hamilton, Ohio, USA",
+        "Ohio, USA", "USA"]``; a string without commas gives a one-item list.
+    """
+    parts = [part.strip() for part in place.split(",")]
+    parts = [part for part in parts if part]
+    return [", ".join(parts[i:]) for i in range(len(parts))] or [place.strip()]
+
+
 class GedcomExtractor(KGExtractor):
     """Extract nodes and edges from one or more GEDCOM files.
 
     :param repo_path: Repository root; source paths are stored relative to it.
     :param config: Optional configuration dict (unused; sources are explicit).
     :param sources: GEDCOM files to index, as paths relative to ``repo_path``.
+    :param living_cutoff_years: Redact people without a death record born
+        within this many years of today. ``None`` (the default) redacts nobody.
     """
 
     def __init__(
@@ -93,9 +120,39 @@ class GedcomExtractor(KGExtractor):
         repo_path: Path,
         config: dict[str, Any] | None = None,
         sources: list[Path] | None = None,
+        *,
+        living_cutoff_years: int | None = None,
     ) -> None:
         super().__init__(repo_path, config)
         self.sources: list[Path] = list(sources) if sources else []
+        self.living_cutoff_years = living_cutoff_years
+        self._living_after_year: int | None = (
+            date.today().year - living_cutoff_years if living_cutoff_years is not None else None
+        )
+
+    # ------------------------------------------------------------------
+    # Living-person redaction
+    # ------------------------------------------------------------------
+
+    def is_living(self, ind: Any) -> bool:
+        """Return whether a person is redacted under ``living_cutoff_years``.
+
+        :param ind: A ged4py ``INDI`` record.
+        :return: ``True`` when redaction is on, the person has no ``DEAT`` or
+            ``BURI`` record, and their birth year is after the cutoff.
+        """
+        if self._living_after_year is None:
+            return False
+        if _first_event(ind, ("DEAT", "BURI")) is not None:
+            return False
+        birth = _first_event(ind, ("BIRT", "BAPM", "CHR"))
+        keys = temporal_keys(birth.sub_tag_value("DATE")) if birth is not None else {}
+        born = keys.get("occurred_start") or keys.get("occurred_end")
+        return born is not None and int(born[:4]) > self._living_after_year
+
+    def _name(self, ind: Any) -> str:
+        """Return a person's formatted name, or ``LIVING_NAME`` when redacted."""
+        return LIVING_NAME if self.is_living(ind) else ind.name.format()
 
     def node_kinds(self) -> list[str]:
         """Return the node kinds this extractor emits.
@@ -199,10 +256,14 @@ class GedcomExtractor(KGExtractor):
         children = list(fam.sub_tags("CHIL"))
         marr = fam.sub_tag("MARR")
 
-        husb_name = husb.name.format() if husb else None
-        wife_name = wife.name.format() if wife else None
+        husb_name = self._name(husb) if husb else None
+        wife_name = self._name(wife) if wife else None
         name = " & ".join(n for n in (husb_name, wife_name) if n) or f"Family {xref}"
 
+        # A living spouse's marriage date is a date about a living person:
+        # the family keeps its structure but not its MARR details.
+        if marr is not None and any(self.is_living(s) for s in (husb, wife) if s):
+            marr = None
         marr_date = marr.sub_tag_value("DATE") if marr else None
         marr_place = marr.sub_tag_value("PLAC") if marr else None
 
@@ -211,7 +272,7 @@ class GedcomExtractor(KGExtractor):
             where = f" in {marr_place}" if marr_place else ""
             lines.append(f"Married {marr_date}{where}.")
         if children:
-            lines.append("Children: " + ", ".join(c.name.format() for c in children) + ".")
+            lines.append("Children: " + ", ".join(self._name(c) for c in children) + ".")
 
         metadata: dict[str, Any] = {"gedcom_xref": xref}
         metadata.update(temporal_keys(marr_date, recorded_at=recorded_at))
@@ -266,11 +327,14 @@ class GedcomExtractor(KGExtractor):
     ) -> Iterator[NodeSpec | EdgeSpec]:
         xref = _xref(ind)
         span = spans.get(xref)
+        sex = ind.sub_tag_value("SEX")
+        if self.is_living(ind):
+            yield from self._living_person(xref, span, rel_path, sex)
+            return
         name = ind.name.format()
         surname = ind.name.surname or ""
         given = ind.name.given or ""
         qualname = f"{surname}, {given}".strip(", ") or name
-        sex = ind.sub_tag_value("SEX")
 
         birth = _first_event(ind, ("BIRT", "BAPM", "CHR"))
         death = _first_event(ind, ("DEAT", "BURI"))
@@ -285,7 +349,7 @@ class GedcomExtractor(KGExtractor):
             lines.append(self._event_sentence("Died", death))
         if occu:
             lines.append(f"Occupation: {occu}.")
-        parents = [p.name.format() for p in (father, mother) if p]
+        parents = [self._name(p) for p in (father, mother) if p]
         if parents:
             lines.append("Parents: " + " and ".join(parents) + ".")
         spouses = self._spouse_phrases(ind, xref)
@@ -298,6 +362,8 @@ class GedcomExtractor(KGExtractor):
         metadata: dict[str, Any] = {"gedcom_xref": xref}
         if sex:
             metadata["sex"] = str(sex)
+        if surname:
+            metadata["surname"] = surname
         metadata.update(
             person_temporal_keys(
                 birth.sub_tag_value("DATE") if birth else None,
@@ -336,6 +402,27 @@ class GedcomExtractor(KGExtractor):
                     place_ids,
                 )
 
+    def _living_person(
+        self, xref: str, span: RecordSpan | None, rel_path: str, sex: Any
+    ) -> Iterator[NodeSpec]:
+        """Emit the redacted stand-in for a living person: no name, dates or events."""
+        metadata: dict[str, Any] = {"gedcom_xref": xref, "living": True}
+        if sex:
+            metadata["sex"] = str(sex)
+        yield NodeSpec(
+            node_id=f"person:{xref}",
+            kind="person",
+            name=LIVING_NAME,
+            qualname=LIVING_NAME,
+            source_path=rel_path,
+            lineno=span.lineno if span else None,
+            end_lineno=span.end_lineno if span else None,
+            docstring=(
+                f"Living person; details withheld (living_cutoff_years={self.living_cutoff_years})."
+            ),
+            metadata=metadata,
+        )
+
     @staticmethod
     def _event_sentence(verb: str, ev: Any) -> str:
         bits = [verb]
@@ -347,8 +434,7 @@ class GedcomExtractor(KGExtractor):
             bits.append(f"in {place}")
         return " ".join(bits) + "."
 
-    @staticmethod
-    def _spouse_phrases(ind: Any, xref: str) -> list[str]:
+    def _spouse_phrases(self, ind: Any, xref: str) -> list[str]:
         phrases: list[str] = []
         for fam in ind.sub_tags("FAMS"):
             husb = fam.sub_tag("HUSB")
@@ -356,9 +442,10 @@ class GedcomExtractor(KGExtractor):
             spouse = wife if (husb and _xref(husb) == xref) else husb
             if spouse is None:
                 continue
-            marr = fam.sub_tag("MARR")
+            living = self.is_living(spouse)
+            marr = None if living else fam.sub_tag("MARR")
             md = marr.sub_tag_value("DATE") if marr else None
-            phrase = spouse.name.format()
+            phrase = LIVING_NAME if living else spouse.name.format()
             if md:
                 phrase += f", married {md}"
             phrases.append(phrase)
@@ -416,20 +503,44 @@ class GedcomExtractor(KGExtractor):
         yield EdgeSpec(owner_id, event_id, "HAS_EVENT")
 
         if place:
-            place_str = str(place)
-            pid = place_ids.get(place_str)
-            if pid is None:
-                pid = f"place:{place_slug(place_str)}"
-                place_ids[place_str] = pid
-                yield NodeSpec(
-                    node_id=pid,
-                    kind="place",
-                    name=place_str,
-                    qualname=place_str,
-                    source_path=rel_path,
-                    docstring=f"Place: {place_str}",
-                    metadata={},
-                )
+            pid = yield from self._place(str(place), rel_path, place_ids)
             yield EdgeSpec(event_id, pid, "OCCURRED_AT")
 
         yield from self._cites(event_id, ev)
+
+    def _place(
+        self, place_str: str, rel_path: str, place_ids: dict[str, str]
+    ) -> Generator[NodeSpec | EdgeSpec, None, str]:
+        """Emit a place and, via ``WITHIN``, every enclosing place not yet seen.
+
+        Each level of ``"Cincinnati, Hamilton, Ohio, USA"`` becomes its own
+        ``place`` node the first time it appears in any string; the chain
+        stops at the first level already emitted, whose own ancestors were
+        emitted with it. ``place_ids`` is keyed by the normalised level
+        string, so ``"A,B"`` and ``"A, B"`` share one node.
+
+        :return: The node id of the innermost place.
+        """
+        chain = place_hierarchy(place_str)
+        previous: str | None = None
+        for level in chain:
+            pid = place_ids.get(level)
+            seen = pid is not None
+            if pid is None:
+                pid = f"place:{place_slug(level)}"
+                place_ids[level] = pid
+                yield NodeSpec(
+                    node_id=pid,
+                    kind="place",
+                    name=level,
+                    qualname=level,
+                    source_path=rel_path,
+                    docstring=f"Place: {level}",
+                    metadata={},
+                )
+            if previous is not None:
+                yield EdgeSpec(previous, pid, "WITHIN")
+            if seen:
+                break
+            previous = pid
+        return place_ids[chain[0]]

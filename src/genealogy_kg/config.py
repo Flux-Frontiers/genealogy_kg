@@ -15,8 +15,18 @@ from __future__ import annotations
 import json
 import tomllib
 from pathlib import Path
+from typing import Any
 
 _CONFIG_PATH = ".genealogykg/config.json"
+
+
+def _pyproject_table(repo_root: Path) -> dict[str, Any]:
+    """Return the ``[tool.genealogykg]`` table of ``pyproject.toml``, or ``{}``."""
+    pyproject = repo_root / "pyproject.toml"
+    if not pyproject.exists():
+        return {}
+    data = tomllib.loads(pyproject.read_text())
+    return data.get("tool", {}).get("genealogykg", {})
 
 
 def load_sources(repo_root: Path) -> list[Path]:
@@ -30,13 +40,20 @@ def load_sources(repo_root: Path) -> list[Path]:
         data = json.loads(cfg_file.read_text())
         return [Path(p) for p in data.get("sources", [])]
 
-    pyproject = repo_root / "pyproject.toml"
-    if pyproject.exists():
-        data = tomllib.loads(pyproject.read_text())
-        sources = data.get("tool", {}).get("genealogykg", {}).get("sources", [])
-        return [Path(p) for p in sources]
+    return [Path(p) for p in _pyproject_table(repo_root).get("sources", [])]
 
-    return []
+
+def load_living_cutoff(repo_root: Path) -> int | None:
+    """Return ``[tool.genealogykg] living_cutoff_years``, or ``None`` when unset.
+
+    Unset means no living-person redaction. See docs/DESIGN.md, "Source
+    files are private by default".
+
+    :param repo_root: Repository root.
+    :return: Number of years, or ``None``.
+    """
+    value = _pyproject_table(repo_root).get("living_cutoff_years")
+    return int(value) if value is not None else None
 
 
 def save_sources(repo_root: Path, sources: list[Path]) -> None:

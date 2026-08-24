@@ -15,8 +15,9 @@ temporal contract.
 *Author: Eric G. Suchanek, PhD -- Flux-Frontiers, Liberty TWP, OH*
 
 > **Status: pre-alpha.** `build`, `query`, `pack`, `analyze`, `status`,
-> ASCII lineage trees (`ancestors`/`descendants`) and KGRAG federation all
-> work end to end (Phase 1-2). 2-D and 3-D visualization are Phase 4-5.
+> ASCII lineage trees (`ancestors`/`descendants`), KGRAG federation, the
+> place hierarchy, the living-person filter and snapshots all work end to
+> end (Phase 1-3). 2-D and 3-D visualization are Phase 4-5.
 > See [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Overview
@@ -25,7 +26,9 @@ GenealogyKG reads a GEDCOM 5.5 or 5.5.1 file and builds:
 
 - a SQLite graph (`.genealogykg/graph.sqlite`) with `person`, `family`,
   `event`, `place` and `source` nodes linked by `CHILD_IN`, `SPOUSE_IN`,
-  `PARENT_OF`, `MARRIED_TO`, `HAS_EVENT`, `OCCURRED_AT` and `CITES` edges
+  `PARENT_OF`, `MARRIED_TO`, `HAS_EVENT`, `OCCURRED_AT`, `CITES` and
+  `WITHIN` (place hierarchy: `Cincinnati, Hamilton, Ohio, USA` is `WITHIN`
+  `Hamilton, Ohio, USA`, and so on up to `USA`) edges
 - a sqlite-vec index (`.genealogykg/vectors.sqlite`) over a prose summary of
   every record, so "chemists born in Cincinnati" finds Robert Hartwell
 - `occurred_start` / `occurred_end` metadata derived from birth, death and
@@ -51,6 +54,13 @@ genealogykg pack "Hartwell marriages" --output context.md
 # Lineage walks
 genealogykg ancestors I7 --generations 3
 genealogykg descendants I1
+
+# Generation depth, surnames, date coverage, people with no family links
+genealogykg analyze
+
+# Point-in-time metrics, tracked in git
+genealogykg snapshot save
+genealogykg snapshot list
 
 # MCP server for Claude Code and other MCP clients
 genealogykg-mcp --repo .
@@ -91,6 +101,34 @@ sources = ["family.ged"]
 
 `.gitignore` excludes `*.ged` outside `tests/fixtures/`. GEDCOM exports
 contain personal data about living people; keep them out of version control.
+
+### Living people
+
+Before sharing a store, turn on the living-person filter and rebuild:
+
+```toml
+[tool.genealogykg]
+sources = ["family.ged"]
+living_cutoff_years = 100
+```
+
+Anyone with no death or burial record who was born within the last 100
+years is then stored as a bare `person` node named `Living`: their lineage
+edges and sex are kept so trees still walk through them, but their name,
+dates, events, notes and citations are dropped, and their name is withheld
+from every family, spouse and parent mention too. A family with a living
+spouse keeps its members but not its marriage details. Two things the
+filter does not do: a person with no birth date at all is never redacted,
+and `pack` reads the GEDCOM file in place, so share the `.genealogykg/`
+store without the `.ged` file.
+
+### Git hook
+
+`genealogykg install-hooks` writes a `pre-commit` hook that runs the repo's
+`pre-commit` checks on every commit. Set `GENEALOGYKG_SNAPSHOT=1` on a
+commit to also rebuild the store and save a snapshot; that is off by
+default because a snapshot staged into the commit it describes can never
+carry that commit's tree hash.
 
 ### Test corpora
 

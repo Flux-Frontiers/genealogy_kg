@@ -18,13 +18,17 @@ from kg_utils.pipeline import KGModule
 from kg_utils.semantic import DEFAULT_MODEL
 from kg_utils.specs import QueryResult, SnippetPack
 
-from genealogy_kg.config import load_sources
+from genealogy_kg.analysis import analyze_graph, render_report
+from genealogy_kg.config import load_living_cutoff, load_sources
 from genealogy_kg.extractor import EDGE_KINDS, GedcomExtractor
 from genealogy_kg.lineage import FamilyTree, ascii_tree
 
 #: Relations followed by default during query/pack expansion. ``CITES`` is
-#: excluded so a hit on a person does not drag every census page in with it.
-DEFAULT_GENEALOGY_RELS: tuple[str, ...] = tuple(r for r in EDGE_KINDS if r != "CITES")
+#: excluded so a hit on a person does not drag every census page in with it,
+#: and ``WITHIN`` so a hit on a country does not drag in every place inside it.
+DEFAULT_GENEALOGY_RELS: tuple[str, ...] = tuple(
+    r for r in EDGE_KINDS if r not in ("CITES", "WITHIN")
+)
 
 
 class GenealogyKG(KGModule):
@@ -37,6 +41,10 @@ class GenealogyKG(KGModule):
         ``None``, resolved from ``.genealogykg/config.json`` or
         ``[tool.genealogykg] sources`` at build/status time.
     :param model: Sentence-transformer model name.
+    :param living_cutoff_years: Redact people without a death record born
+        within this many years of today. When ``None``, resolved from
+        ``[tool.genealogykg] living_cutoff_years`` at build time; unset there
+        too means no redaction.
     """
 
     _default_dir = ".genealogykg"
@@ -49,9 +57,11 @@ class GenealogyKG(KGModule):
         *,
         sources: list[Path] | None = None,
         model: str = DEFAULT_MODEL,
+        living_cutoff_years: int | None = None,
     ) -> None:
         super().__init__(repo_root, db_path, vectors_path, model=model)
         self.sources = sources
+        self.living_cutoff_years = living_cutoff_years
 
     def make_extractor(self) -> GedcomExtractor:
         """Return the GEDCOM extractor for the configured sources.
@@ -59,7 +69,10 @@ class GenealogyKG(KGModule):
         :return: A :class:`~genealogy_kg.extractor.GedcomExtractor`.
         """
         sources = self.sources if self.sources is not None else load_sources(self.repo_root)
-        return GedcomExtractor(self.repo_root, sources=sources)
+        cutoff = self.living_cutoff_years
+        if cutoff is None:
+            cutoff = load_living_cutoff(self.repo_root)
+        return GedcomExtractor(self.repo_root, sources=sources, living_cutoff_years=cutoff)
 
     def kind(self) -> str:
         """Return the KG kind string.
@@ -115,28 +128,22 @@ class GenealogyKG(KGModule):
         """
         return super().pack(q, k=k, hop=hop, rels=rels, **kwargs)
 
+    def analysis(self) -> dict[str, Any]:
+        """Return the analysis data: counts, generation depth, surnames, hygiene lists.
+
+        :return: See :func:`genealogy_kg.analysis.analyze_graph`.
+        """
+        return analyze_graph(self.store)
+
     def analyze(self) -> str:
         """Return a Markdown analysis report. Must not raise.
 
         :return: Markdown text.
         """
         try:
-            stats = self.stats()
+            return render_report(self.analysis(), self.stats())
         except Exception as exc:  # noqa: BLE001 - analyze() must not raise
             return f"# GenealogyKG Analysis\n\nAnalysis failed: {exc}\n"
-        counts = stats.get("node_counts", {})
-        lines = [
-            "# GenealogyKG Analysis",
-            "",
-            f"- People: {counts.get('person', 0)}",
-            f"- Families: {counts.get('family', 0)}",
-            f"- Events: {counts.get('event', 0)}",
-            f"- Places: {counts.get('place', 0)}",
-            f"- Sources: {counts.get('source', 0)}",
-            f"- Total nodes: {stats.get('total_nodes', 0)}",
-            f"- Total edges: {stats.get('total_edges', 0)}",
-        ]
-        return "\n".join(lines) + "\n"
 
     def person(self, xref: str) -> dict[str, Any] | None:
         """Return the person node for a GEDCOM xref such as ``I7``.

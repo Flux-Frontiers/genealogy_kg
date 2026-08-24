@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import subprocess
 from pathlib import Path
 
 from click.testing import CliRunner
@@ -58,3 +59,89 @@ def test_build_without_source_or_config_fails_clearly(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["build", "--repo", str(tmp_path)])
     assert result.exit_code != 0
     assert "No GEDCOM sources configured" in result.output
+
+
+def test_snapshot_save_list_show_diff(corpus_root: Path) -> None:
+    runner = CliRunner()
+    repo = str(corpus_root)
+    build = runner.invoke(
+        cli, ["build", "--repo", repo, "--source", str(corpus_root / "family.ged")]
+    )
+    assert build.exit_code == 0, build.output
+
+    save = runner.invoke(
+        cli,
+        ["snapshot", "save", "0.3.0", "--repo", repo, "--tree-hash", "a" * 40, "--branch", "main"],
+    )
+    assert save.exit_code == 0, save.output
+    assert "people:" in save.output and "12" in save.output
+    assert (corpus_root / ".genealogykg" / "snapshots" / "manifest.json").exists()
+
+    listed = runner.invoke(cli, ["snapshot", "list", "--repo", repo])
+    assert listed.exit_code == 0, listed.output
+    assert "a" * 12 in listed.output and "0.3.0" in listed.output
+
+    shown = runner.invoke(cli, ["snapshot", "show", "a" * 40, "--repo", repo])
+    assert shown.exit_code == 0, shown.output
+    assert "generation_depth: 4" in shown.output
+
+    second = runner.invoke(
+        cli,
+        [
+            "snapshot",
+            "save",
+            "0.3.1",
+            "--repo",
+            repo,
+            "--tree-hash",
+            "b" * 40,
+            "--branch",
+            "main",
+            "--force",
+        ],
+    )
+    assert second.exit_code == 0, second.output
+    diff = runner.invoke(cli, ["snapshot", "diff", "a" * 40, "b" * 40, "--repo", repo])
+    assert diff.exit_code == 0, diff.output
+    assert "people" in diff.output and "+0" in diff.output
+
+    missing = runner.invoke(cli, ["snapshot", "show", "nope", "--repo", repo])
+    assert missing.exit_code != 0
+
+
+def test_snapshot_save_without_a_store_fails_clearly(tmp_path: Path) -> None:
+    result = CliRunner().invoke(cli, ["snapshot", "save", "--repo", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "genealogykg build" in result.output
+
+
+def test_build_honours_living_cutoff_from_pyproject(corpus_root: Path) -> None:
+    (corpus_root / "pyproject.toml").write_text(
+        '[tool.genealogykg]\nsources = ["family.ged"]\nliving_cutoff_years = 200\n'
+    )
+    runner = CliRunner()
+    build = runner.invoke(cli, ["build", "--repo", str(corpus_root)])
+    assert build.exit_code == 0, build.output
+    analyze = runner.invoke(cli, ["analyze", "--repo", str(corpus_root)])
+    assert "Living people redacted: 5" in analyze.output
+
+
+def test_install_hooks(tmp_path: Path) -> None:
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    runner = CliRunner()
+    result = runner.invoke(cli, ["install-hooks", "--repo", str(tmp_path)])
+    assert result.exit_code == 0, result.output
+    hook = tmp_path / ".git" / "hooks" / "pre-commit"
+    assert hook.exists() and hook.stat().st_mode & 0o111
+    assert "GENEALOGYKG_SNAPSHOT" in hook.read_text()
+
+    again = runner.invoke(cli, ["install-hooks", "--repo", str(tmp_path)])
+    assert again.exit_code != 0 and "--force" in again.output
+    forced = runner.invoke(cli, ["install-hooks", "--repo", str(tmp_path), "--force"])
+    assert forced.exit_code == 0, forced.output
+
+
+def test_install_hooks_outside_git_fails(tmp_path: Path) -> None:
+    result = CliRunner().invoke(cli, ["install-hooks", "--repo", str(tmp_path)])
+    assert result.exit_code != 0
+    assert "not a git repository" in result.output

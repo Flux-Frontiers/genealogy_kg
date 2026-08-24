@@ -22,6 +22,17 @@ CASES = [
     ("FROM 1846", {"occurred_start": "1846"}, "FROM"),
     ("TO 1850", {"occurred_end": "1850"}, "TO"),
     ("(before the war)", {}, None),
+    # Julian dates convert to Gregorian at day precision (1700: +11 days) ...
+    ("@#DJULIAN@ 1 MAR 1700", {"occurred_start": "1700-03-12"}, None),
+    ("@#DJULIAN@ 29 FEB 1700", {"occurred_start": "1700-03-11"}, None),  # a real Julian leap day
+    ("BEF @#DJULIAN@ 25 DEC 1600", {"occurred_end": "1601-01-04"}, "BEF"),
+    # ... and pass through unchanged at month and year precision.
+    ("@#DJULIAN@ MAR 1700", {"occurred_start": "1700-03"}, None),
+    ("@#DJULIAN@ 1700", {"occurred_start": "1700"}, None),
+    # Hebrew and French Republican are still not placed; BC has no ISO form.
+    ("@#DHEBREW@ 1 TSH 5785", {}, None),
+    ("@#DFRENCH R@ 1 VEND 8", {}, None),
+    ("100 BC", {}, None),
 ]
 
 
