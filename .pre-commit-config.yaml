@@ -50,7 +50,9 @@ repos:
         always_run: true
       - id: pytest
         name: pytest
-        entry: .venv/bin/pytest --tb=short -q
+        # --cov activates [tool.coverage.report] fail_under (pyproject.toml)
+        # so a local commit enforces the same coverage floor CI does.
+        entry: .venv/bin/pytest --tb=short -q --cov=genealogy_kg --cov-report=term-missing
         language: system
         pass_filenames: false
         always_run: true

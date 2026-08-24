@@ -114,8 +114,11 @@ jobs:
       - name: Install dependencies
         run: poetry install --no-interaction --with dev -E viz -E adapter
 
+      # --cov activates the fail_under gate in [tool.coverage.report]
+      # (pyproject.toml) -- coverage.py reads it automatically. --cov-fail-under
+      # is not repeated here on purpose: one number to keep in sync, not two.
       - name: Run tests
-        run: poetry run pytest -m "not integration"
+        run: poetry run pytest -m "not integration" --cov=genealogy_kg --cov-report=term-missing
 
   wheel:
     name: Installed CLI
