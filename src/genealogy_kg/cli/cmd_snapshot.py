@@ -15,8 +15,7 @@ from pathlib import Path
 import click
 
 from genealogy_kg.cli.group import cli
-from genealogy_kg.cli.options import db_option, repo_option
-from genealogy_kg.module import GenealogyKG
+from genealogy_kg.cli.options import db_option, open_kg, repo_option
 from genealogy_kg.snapshots import GENEALOGY_METRICS, SnapshotManager
 
 _LIST_COLUMNS = ("total_nodes", "total_edges", *GENEALOGY_METRICS, "generation_depth")
@@ -45,15 +44,11 @@ def save(
 
     VERSION defaults to the installed genealogy-kg version.
     """
-    repo_root = Path(repo).resolve()
-    kg = GenealogyKG(repo_root=repo_root, db_path=Path(db) if db else None)
-    if not kg.db_path.exists():
-        raise click.ClickException(f"No store at {kg.db_path}. Run 'genkg build' first.")
-    try:
+    with open_kg(repo, db) as kg:
+        if not kg.db_path.exists():
+            raise click.ClickException(f"No store at {kg.db_path}. Run 'genkg build' first.")
         stats = kg.stats()
         analysis = kg.analysis()
-    finally:
-        kg.close()
 
     mgr = SnapshotManager(_snapshots_dir(repo))
     snap = mgr.capture_genealogy(

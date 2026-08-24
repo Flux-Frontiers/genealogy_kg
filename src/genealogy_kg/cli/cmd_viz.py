@@ -23,9 +23,14 @@ from pathlib import Path
 import click
 
 from genealogy_kg.cli.group import cli
-from genealogy_kg.cli.options import cli_normalize_xref, db_option, generations_option, repo_option
+from genealogy_kg.cli.options import (
+    cli_normalize_xref,
+    db_option,
+    generations_option,
+    open_kg,
+    repo_option,
+)
 from genealogy_kg.config import load_default_xref
-from genealogy_kg.module import GenealogyKG
 
 _VIZ_EXTRA = 'pip install "genealogy-kg[viz]"'
 
@@ -115,30 +120,30 @@ def viz(
 
     from genealogy_kg import viz as render
 
-    kg = GenealogyKG(repo_root=Path(repo).resolve(), db_path=Path(db) if db else None)
     person_id = f"person:{cli_normalize_xref(xref)}"
 
     try:
-        if view == "pedigree":
-            figure = render.pedigree_figure(
-                kg.store,
-                person_id,
-                direction=direction,
-                generations=generations,
-                color_by=color_by,
-            )
-            figure.write_html(output, include_plotlyjs=True)
-            drawn = f"{direction} of {xref}, {generations} generations"
-        else:
-            html = render.network_html(
-                kg.store,
-                root_id=person_id,
-                hops=generations,
-                max_nodes=max_nodes,
-                color_by=color_by,
-            )
-            Path(output).write_text(html, encoding="utf-8")
-            drawn = f"network around {xref}, {generations} hops"
+        with open_kg(repo, db) as kg:
+            if view == "pedigree":
+                figure = render.pedigree_figure(
+                    kg.store,
+                    person_id,
+                    direction=direction,
+                    generations=generations,
+                    color_by=color_by,
+                )
+                figure.write_html(output, include_plotlyjs=True)
+                drawn = f"{direction} of {xref}, {generations} generations"
+            else:
+                html = render.network_html(
+                    kg.store,
+                    root_id=person_id,
+                    hops=generations,
+                    max_nodes=max_nodes,
+                    color_by=color_by,
+                )
+                Path(output).write_text(html, encoding="utf-8")
+                drawn = f"network around {xref}, {generations} hops"
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
 
@@ -256,19 +261,19 @@ def quilt(
 
     repo_root = Path(repo).resolve()
     xref = _resolve_xref(xref, repo_root)
-    kg = GenealogyKG(repo_root=repo_root, db_path=Path(db) if db else None)
 
     plotter = pv.Plotter(off_screen=True)
     try:
-        tree = render3d.build_family_tree_scene(
-            kg.store,
-            plotter,
-            xref,
-            color_by=color_by,
-            tip_radius=tip_radius,
-            leaf_size=leaf_size,
-            organic=not schematic,
-        )
+        with open_kg(repo, db) as kg:
+            tree = render3d.build_family_tree_scene(
+                kg.store,
+                plotter,
+                xref,
+                color_by=color_by,
+                tip_radius=tip_radius,
+                leaf_size=leaf_size,
+                organic=not schematic,
+            )
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
     click.echo(f"Scene: {tree.title}")

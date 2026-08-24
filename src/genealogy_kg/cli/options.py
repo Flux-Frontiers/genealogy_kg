@@ -4,9 +4,14 @@ Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
 """
 
+from __future__ import annotations
+
+from pathlib import Path
+
 import click
 from kg_utils.semantic import DEFAULT_MODEL
 
+from genealogy_kg.module import GenealogyKG
 from genealogy_kg.validation import MAX_GENERATIONS, MAX_HOP, MAX_K, normalize_xref
 
 repo_option = click.option(
@@ -75,3 +80,20 @@ def cli_normalize_xref(xref: str) -> str:
         return normalize_xref(xref)
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
+
+
+def open_kg(repo: str, db: str | None = None, vectors: str | None = None) -> GenealogyKG:
+    """Construct a GenealogyKG for the standard ``--repo``/``--db``/``--vectors``
+    options, for use as ``with open_kg(...) as kg:`` so ``close()`` always
+    runs -- ``GenealogyKG`` is a context manager via its ``KGModule`` base.
+
+    :param repo: Repository root, matching :data:`repo_option`.
+    :param db: SQLite graph path override, or ``None`` for the default.
+    :param vectors: sqlite-vec store path override, or ``None`` for the default.
+    :return: A new, unopened ``GenealogyKG`` instance.
+    """
+    return GenealogyKG(
+        repo_root=Path(repo).resolve(),
+        db_path=Path(db) if db else None,
+        vectors_path=Path(vectors) if vectors else None,
+    )

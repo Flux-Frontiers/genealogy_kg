@@ -126,13 +126,12 @@ def launch(
     """
     from PyQt5.QtWidgets import QApplication  # noqa: PLC0415 - viz3d-only import
 
-    kg = GenealogyKG(repo_root=repo, db_path=db)
-
-    app = QApplication.instance() or QApplication([])
-    window = FamilyTreeWindow(kg.store, xref, color_by=color_by, preset=preset, organic=organic)
-    window.resize(width, height)
-    window.show()
-    app.exec_()
+    with GenealogyKG(repo_root=repo, db_path=db) as kg:
+        app = QApplication.instance() or QApplication([])
+        window = FamilyTreeWindow(kg.store, xref, color_by=color_by, preset=preset, organic=organic)
+        window.resize(width, height)
+        window.show()
+        app.exec_()
 
 
 __all__ = ["FamilyTreeWindow", "launch"]
