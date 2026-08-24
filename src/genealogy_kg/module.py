@@ -114,6 +114,18 @@ class GenealogyKG(KGModule):
         self.living_cutoff_years = living_cutoff_years
         self.unknown_birth_policy = unknown_birth_policy
 
+    def __enter__(self) -> GenealogyKG:
+        """Return ``self`` for ``with GenealogyKG(...) as kg:``.
+
+        Overrides :meth:`KGModule.__enter__`, which is typed to return the
+        base class -- without this, ``with GenealogyKG(...) as kg:`` narrows
+        ``kg`` to ``KGModule`` and every ``genealogy_kg``-specific attribute
+        access (``.tree()``, ``.sources``, ...) fails type checking.
+
+        :return: This instance.
+        """
+        return self
+
     def make_extractor(self) -> GedcomExtractor:
         """Return the GEDCOM extractor for the configured sources.
 

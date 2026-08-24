@@ -55,14 +55,14 @@ def build(
     click.echo(f"Building GenealogyKG for {repo_root}")
     click.echo("  Sources: " + ", ".join(str(s) for s in rel_sources))
 
-    kg = GenealogyKG(
+    with GenealogyKG(
         repo_root=repo_root,
         db_path=Path(db) if db else None,
         vectors_path=Path(vectors) if vectors else None,
         sources=rel_sources,
         model=model,
-    )
-    stats = kg.build(wipe=not no_wipe)
+    ) as kg:
+        stats = kg.build(wipe=not no_wipe)
 
     click.echo("Build complete")
     click.echo(f"  Nodes: {stats.total_nodes}")
