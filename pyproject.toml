@@ -83,9 +83,7 @@ dependencies = [
 # exported from __init__.py, so the dependency is optional rather than core;
 # the fleet convention is that kg-rag ships its own lazy adapter as well.
 # 0.15.0 is a hard floor, not a preference: it is where `KGKind.GENEALOGY`
-# lands. Against 0.14.0 this adapter imports fine and then raises
-# AttributeError on the first query() or pack() -- which is exactly how the
-# defect survived Phases 1-3 unnoticed.
+# lands.
 adapter = [
     "kg-rag>=0.15.0",
 ]
