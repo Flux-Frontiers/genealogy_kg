@@ -7,6 +7,8 @@ License: Elastic 2.0
 import click
 from kg_utils.semantic import DEFAULT_MODEL
 
+from genealogy_kg.validation import MAX_GENERATIONS, MAX_HOP, MAX_K, normalize_xref
+
 repo_option = click.option(
     "--repo",
     default=".",
@@ -40,11 +42,36 @@ k_option = click.option(
     "-k",
     "--k",
     default=8,
-    type=int,
+    type=click.IntRange(1, MAX_K),
     show_default=True,
     help="Number of top results to return.",
 )
 
 generations_option = click.option(
-    "--generations", default=4, show_default=True, help="Maximum generations to walk."
+    "--generations",
+    default=4,
+    type=click.IntRange(1, MAX_GENERATIONS),
+    show_default=True,
+    help="Maximum generations to walk.",
 )
+
+hop_option = click.option(
+    "--hop",
+    default=1,
+    type=click.IntRange(0, MAX_HOP),
+    show_default=True,
+    help="Graph expansion hops.",
+)
+
+
+def cli_normalize_xref(xref: str) -> str:
+    """Normalize an XREF argument, raising a Click usage error if invalid.
+
+    :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
+    :return: The bare pointer, e.g. ``"I7"``.
+    :raises click.UsageError: If ``xref`` is not a plausible GEDCOM pointer.
+    """
+    try:
+        return normalize_xref(xref)
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc

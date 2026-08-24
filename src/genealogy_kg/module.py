@@ -22,6 +22,17 @@ from genealogy_kg.analysis import analyze_graph, render_report
 from genealogy_kg.config import load_living_cutoff, load_sources, load_unknown_birth_policy
 from genealogy_kg.extractor import EDGE_KINDS, GedcomExtractor
 from genealogy_kg.lineage import FamilyTree, ascii_tree
+from genealogy_kg.lineage import ancestors as _walk_ancestors
+from genealogy_kg.lineage import descendants as _walk_descendants
+from genealogy_kg.validation import (
+    MAX_GENERATIONS,
+    MAX_HOP,
+    MAX_K,
+    MAX_MAX_NODES,
+    bounded_int,
+    normalize_xref,
+    require_query,
+)
 
 #: Relations followed by default during query/pack expansion. ``CITES`` is
 #: excluded so a hit on a person does not drag every census page in with it,
@@ -147,13 +158,18 @@ class GenealogyKG(KGModule):
     ) -> QueryResult:
         """Hybrid query, defaulting expansion to the genealogy edge set.
 
-        :param q: Natural-language query.
-        :param k: Top-K semantic hits.
-        :param hop: Graph expansion hops.
+        :param q: Natural-language query. Must be non-empty and at most
+            :data:`~genealogy_kg.validation.MAX_QUERY_LEN` characters.
+        :param k: Top-K semantic hits, ``1``-:data:`~genealogy_kg.validation.MAX_K`.
+        :param hop: Graph expansion hops, ``0``-:data:`~genealogy_kg.validation.MAX_HOP`.
         :param rels: Edge types to follow; defaults to every relation except
             ``CITES``.
         :return: :class:`~kg_utils.specs.QueryResult`.
+        :raises ValueError: If ``q``, ``k``, or ``hop`` is out of bounds.
         """
+        q = require_query(q)
+        bounded_int("k", k, 1, MAX_K)
+        bounded_int("hop", hop, 0, MAX_HOP)
         return super().query(q, k=k, hop=hop, rels=rels, **kwargs)
 
     def pack(
@@ -163,20 +179,33 @@ class GenealogyKG(KGModule):
         k: int = 8,
         hop: int = 1,
         rels: tuple[str, ...] = DEFAULT_GENEALOGY_RELS,
+        max_nodes: int | None = None,
         **kwargs: Any,
     ) -> SnippetPack:
         """Hybrid query + source-grounded GEDCOM snippet extraction.
 
-        :param q: Natural-language query.
-        :param k: Top-K semantic hits.
-        :param hop: Graph expansion hops.
+        :param q: Natural-language query. Must be non-empty and at most
+            :data:`~genealogy_kg.validation.MAX_QUERY_LEN` characters.
+        :param k: Top-K semantic hits, ``1``-:data:`~genealogy_kg.validation.MAX_K`.
+        :param hop: Graph expansion hops, ``0``-:data:`~genealogy_kg.validation.MAX_HOP`.
         :param rels: Edge types to follow; defaults to every relation except
             ``CITES``.
+        :param max_nodes: Maximum nodes in the pack, ``1``-
+            :data:`~genealogy_kg.validation.MAX_MAX_NODES`. ``None`` uses the
+            SDK default.
         :return: :class:`~kg_utils.specs.SnippetPack`. When living-person
             redaction is on, no returned snippet contains a line from a
             redacted person's real GEDCOM record -- see
             :func:`_redact_snippet_overlaps`.
+        :raises ValueError: If ``q``, ``k``, ``hop``, or ``max_nodes`` is out
+            of bounds.
         """
+        q = require_query(q)
+        bounded_int("k", k, 1, MAX_K)
+        bounded_int("hop", hop, 0, MAX_HOP)
+        if max_nodes is not None:
+            bounded_int("max_nodes", max_nodes, 1, MAX_MAX_NODES)
+            kwargs["max_nodes"] = max_nodes
         result = super().pack(q, k=k, hop=hop, rels=rels, **kwargs)
         extractor = self.make_extractor()
         if extractor.living_cutoff_years is None:
@@ -206,24 +235,55 @@ class GenealogyKG(KGModule):
     def person(self, xref: str) -> dict[str, Any] | None:
         """Return the person node for a GEDCOM xref such as ``I7``.
 
-        :param xref: Individual xref without ``@``.
+        :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
         :return: Node dict, or ``None`` when absent.
+        :raises ValueError: If ``xref`` is not a plausible GEDCOM pointer.
         """
-        return self.node(f"person:{xref}")
+        return self.node(f"person:{normalize_xref(xref)}")
 
     def tree(
         self, xref: str, *, direction: str = "descendants", generations: int = 4
     ) -> FamilyTree:
         """Render an ASCII family tree rooted at a person.
 
-        :param xref: Individual xref without ``@``.
+        :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
         :param direction: ``"descendants"`` (default) or ``"ancestors"``.
-        :param generations: Maximum generations to walk.
+        :param generations: Maximum generations to walk, ``1``-
+            :data:`~genealogy_kg.validation.MAX_GENERATIONS`.
         :return: A :class:`~genealogy_kg.lineage.FamilyTree`.
+        :raises ValueError: If ``xref`` or ``generations`` is invalid.
         """
+        xref = normalize_xref(xref)
+        bounded_int("generations", generations, 1, MAX_GENERATIONS)
         return ascii_tree(
             self.store, f"person:{xref}", direction=direction, generations=generations
         )
+
+    def ancestors(self, xref: str, *, generations: int = 4) -> list[dict[str, Any]]:
+        """Return the ancestors of a person, nearest generation first.
+
+        :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
+        :param generations: Maximum generations to climb, ``1``-
+            :data:`~genealogy_kg.validation.MAX_GENERATIONS`.
+        :return: List of person node dicts, each with a ``generation`` key.
+        :raises ValueError: If ``xref`` or ``generations`` is invalid.
+        """
+        xref = normalize_xref(xref)
+        bounded_int("generations", generations, 1, MAX_GENERATIONS)
+        return _walk_ancestors(self.store, f"person:{xref}", generations=generations)
+
+    def descendants(self, xref: str, *, generations: int = 4) -> list[dict[str, Any]]:
+        """Return the descendants of a person, nearest generation first.
+
+        :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
+        :param generations: Maximum generations to descend, ``1``-
+            :data:`~genealogy_kg.validation.MAX_GENERATIONS`.
+        :return: List of person node dicts, each with a ``generation`` key.
+        :raises ValueError: If ``xref`` or ``generations`` is invalid.
+        """
+        xref = normalize_xref(xref)
+        bounded_int("generations", generations, 1, MAX_GENERATIONS)
+        return _walk_descendants(self.store, f"person:{xref}", generations=generations)
 
 
 __all__ = ["GenealogyKG", "DEFAULT_GENEALOGY_RELS"]

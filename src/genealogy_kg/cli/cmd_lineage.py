@@ -26,7 +26,11 @@ from genealogy_kg.module import GenealogyKG
 def ancestors(xref: str, repo: str, db: str | None, generations: int) -> None:
     """Print an ASCII tree of a person's ancestors (xref such as I7)."""
     kg = GenealogyKG(repo_root=Path(repo).resolve(), db_path=Path(db) if db else None)
-    click.echo(str(kg.tree(xref, direction="ancestors", generations=generations)))
+    try:
+        tree = kg.tree(xref, direction="ancestors", generations=generations)
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
+    click.echo(str(tree))
 
 
 @cli.command("descendants")
@@ -37,4 +41,8 @@ def ancestors(xref: str, repo: str, db: str | None, generations: int) -> None:
 def descendants(xref: str, repo: str, db: str | None, generations: int) -> None:
     """Print an ASCII tree of a person's descendants (xref such as I1)."""
     kg = GenealogyKG(repo_root=Path(repo).resolve(), db_path=Path(db) if db else None)
-    click.echo(str(kg.tree(xref, direction="descendants", generations=generations)))
+    try:
+        tree = kg.tree(xref, direction="descendants", generations=generations)
+    except ValueError as exc:
+        raise click.UsageError(str(exc)) from exc
+    click.echo(str(tree))

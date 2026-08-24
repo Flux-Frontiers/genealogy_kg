@@ -23,7 +23,7 @@ from pathlib import Path
 import click
 
 from genealogy_kg.cli.group import cli
-from genealogy_kg.cli.options import db_option, generations_option, repo_option
+from genealogy_kg.cli.options import cli_normalize_xref, db_option, generations_option, repo_option
 from genealogy_kg.config import load_default_xref
 from genealogy_kg.module import GenealogyKG
 
@@ -35,17 +35,18 @@ def _resolve_xref(xref: str | None, repo_root: Path) -> str:
 
     :param xref: The XREF argument as passed on the command line, or ``None``.
     :param repo_root: Repository root, for reading ``pyproject.toml``.
-    :raises click.UsageError: If XREF was omitted and no default is configured.
+    :return: The normalized, bare xref.
+    :raises click.UsageError: If XREF was omitted and no default is configured,
+        or the resolved value is not a plausible GEDCOM pointer.
     """
-    if xref is not None:
-        return xref
-    default = load_default_xref(repo_root)
-    if default is None:
-        raise click.UsageError(
-            "Missing argument XREF -- pass one, or set "
-            "[tool.genealogykg] default_xref in pyproject.toml."
-        )
-    return default
+    if xref is None:
+        xref = load_default_xref(repo_root)
+        if xref is None:
+            raise click.UsageError(
+                "Missing argument XREF -- pass one, or set "
+                "[tool.genealogykg] default_xref in pyproject.toml."
+            )
+    return cli_normalize_xref(xref)
 
 
 @cli.command("viz")
@@ -115,7 +116,7 @@ def viz(
     from genealogy_kg import viz as render
 
     kg = GenealogyKG(repo_root=Path(repo).resolve(), db_path=Path(db) if db else None)
-    person_id = f"person:{xref}"
+    person_id = f"person:{cli_normalize_xref(xref)}"
 
     try:
         if view == "pedigree":
