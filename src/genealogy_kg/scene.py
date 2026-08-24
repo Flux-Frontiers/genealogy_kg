@@ -81,6 +81,32 @@ REACH_FLOOR: Final[float] = 0.4
 #: Never rendered as foliage -- see ``CodeTreeLayout.trunk_guides``.
 N_TRUNK_GUIDES: Final[int] = 8
 
+#: Height of the root/spouse ring, as a fraction of trunk height. Below
+#: LIMB_START (families' own floor) so the founding generation still reads
+#: as "older" than every family it started, but well off z=0 -- a founding
+#: couple flush with the trunk's very base looks buried, not planted.
+ROOT_RING_HEIGHT_FRACTION: Final[float] = 0.12
+
+#: Population at which tip_radius/leaf_size/branch_reach are exactly the
+#: caller-supplied defaults. Below it, geometry scales up -- a 9-person
+#: family drawn at Habsburg-scale radii is a scatter of unconnected dust,
+#: not a tree. Above it, geometry scales down so wood and foliage do not
+#: drown a large tree. See docs/DESIGN.md.
+SIZE_REFERENCE_POPULATION: Final[int] = 200
+MIN_SIZE_SCALE: Final[float] = 0.6
+MAX_SIZE_SCALE: Final[float] = 3.0
+
+
+def _population_size_scale(population: int) -> float:
+    """Geometry scale factor: bigger for small families, smaller for huge ones.
+
+    :param population: Number of people in the grown tree.
+    :return: Multiplier for radii/reach, clamped to
+        ``[MIN_SIZE_SCALE, MAX_SIZE_SCALE]``.
+    """
+    raw = math.sqrt(SIZE_REFERENCE_POPULATION / max(population, 1))
+    return min(max(raw, MIN_SIZE_SCALE), MAX_SIZE_SCALE)
+
 
 @dataclass
 class FamilyTreePositions:
@@ -96,6 +122,9 @@ class FamilyTreePositions:
         root and their spouse(s) -- who ring the trunk base instead. The
         schematic renderer draws this as a twig line; the organic renderer
         does not need it, since ``grow_tree`` finds its own connections.
+    :param size_scale: Population-based geometry multiplier from
+        :func:`_population_size_scale`; the caller applies it to
+        tip_radius/leaf_size so a small family doesn't render as dust.
     """
 
     person_positions: dict[str, np.ndarray]
@@ -104,6 +133,7 @@ class FamilyTreePositions:
     trunk_height: float
     root_id: str
     person_family: dict[str, str | None]
+    size_scale: float = 1.0
 
 
 def _family_spouses(store: GraphStore, family_id: str) -> list[str]:
@@ -221,6 +251,9 @@ def family_tree_positions(
 
     ordered_families = sorted(family_ids, key=family_sort_key)
 
+    size_scale = _population_size_scale(len(population))
+    branch_reach = branch_reach * size_scale
+
     trunk_height = max(trunk_height_per_generation * max_depth, MIN_TRUNK_HEIGHT)
     max_children = max((len(_family_children(store, fid)) for fid in ordered_families), default=1)
     max_children = max(max_children, 1)
@@ -253,7 +286,7 @@ def family_tree_positions(
         )
         if not siblings:
             continue
-        cluster_radius = 0.5 + math.sqrt(len(siblings)) * 0.35
+        cluster_radius = (0.9 + math.sqrt(len(siblings)) * 0.6) * size_scale
         cluster = oriented_cluster(len(siblings), tip, facing, cluster_radius)
         for sib_id, pos in zip(siblings, cluster, strict=True):
             person_positions[sib_id] = pos
@@ -267,8 +300,10 @@ def family_tree_positions(
         # A flat ring, not a sphere: the founding couple is "the roots", and
         # a sphere's lower hemisphere would dip below the trunk's own base
         # -- a couple with no known parents is not literally underground.
+        # Raised to ROOT_RING_HEIGHT_FRACTION rather than sitting at the
+        # trunk's literal base -- flush with z=0 reads as buried, not planted.
         base_radius = max(branch_reach * 0.4, 1.0)
-        ring_center = np.array([0.0, 0.0, trunk_height * 0.03])
+        ring_center = np.array([0.0, 0.0, trunk_height * ROOT_RING_HEIGHT_FRACTION])
         ring = fibonacci_annulus(
             len(orphans),
             inner_radius=base_radius * 0.3,
@@ -289,6 +324,7 @@ def family_tree_positions(
         trunk_height=trunk_height,
         root_id=root_id,
         person_family=person_family,
+        size_scale=size_scale,
     )
 
 
@@ -414,6 +450,11 @@ def build_family_tree_scene(
     positions = family_tree_positions(store, xref)
     depths = generation_depths(store, positions.root_id)
 
+    # A 9-person family drawn at radii tuned for a 1700-person one is dust,
+    # not a tree -- see FamilyTreePositions.size_scale.
+    tip_radius = tip_radius * positions.size_scale
+    leaf_size = leaf_size * positions.size_scale
+
     person_ids = list(positions.person_positions)
     leaf_points = np.array([positions.person_positions[pid] for pid in person_ids])
     tint, palette = _leaf_tint(store, person_ids, color_by=color_by, depths=depths)
@@ -466,7 +507,7 @@ def build_family_tree_scene(
             height=positions.trunk_height,
             resolution=12,
         )
-        plotter.add_mesh(trunk, color="#5A3A22", name="wood")
+        plotter.add_mesh(trunk, color="#5A3A22", smooth_shading=True, name="wood")
 
         segments: list[tuple[np.ndarray, np.ndarray]] = []
         for tip in positions.family_positions.values():
@@ -478,14 +519,25 @@ def build_family_tree_scene(
             segments.append((anchor, positions.person_positions[pid]))
         branches = _line_mesh(segments)
         if branches.n_points:
-            plotter.add_mesh(branches, color="#8A6A4A", line_width=1.5, name="branches")
+            # A real tube, not a screen-space line width: line_width is
+            # pixels, not world units, so it shrinks to invisible on zoom-out
+            # and never reads as a solid connector the way the trunk does.
+            tubes = branches.tube(radius=max(tip_radius * 0.6, 0.01), n_sides=8)
+            plotter.add_mesh(tubes, color="#8A6A4A", smooth_shading=True, name="branches")
 
         if leaf_points.size:
             people = pv.PolyData(leaf_points)
             people.point_data["tint"] = tint
-            glyphs = people.glyph(geom=pv.Sphere(radius=leaf_size), orient=False, scale=False)
+            sphere = pv.Sphere(radius=leaf_size, theta_resolution=16, phi_resolution=16)
+            glyphs = people.glyph(geom=sphere, orient=False, scale=False)
             plotter.add_mesh(
-                glyphs, scalars="tint", cmap=cmap, clim=clim, show_scalar_bar=False, name="leaves"
+                glyphs,
+                scalars="tint",
+                cmap=cmap,
+                clim=clim,
+                show_scalar_bar=False,
+                smooth_shading=True,
+                name="leaves",
             )
         family_points = np.array(list(positions.family_positions.values()))
         points = np.vstack([leaf_points, family_points]) if leaf_points.size else family_points

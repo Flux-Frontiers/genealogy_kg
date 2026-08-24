@@ -56,6 +56,19 @@ def load_living_cutoff(repo_root: Path) -> int | None:
     return int(value) if value is not None else None
 
 
+def load_default_xref(repo_root: Path) -> str | None:
+    """Return ``[tool.genealogykg] default_xref``, or ``None`` when unset.
+
+    Used by ``genkg quilt``/``genkg viz3d`` when XREF is omitted from the
+    command line.
+
+    :param repo_root: Repository root.
+    :return: Xref without ``@``, or ``None``.
+    """
+    value = _pyproject_table(repo_root).get("default_xref")
+    return str(value) if value is not None else None
+
+
 def save_sources(repo_root: Path, sources: list[Path]) -> None:
     """Record the sources used by a build in ``.genealogykg/config.json``.
 

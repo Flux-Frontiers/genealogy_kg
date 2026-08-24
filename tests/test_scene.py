@@ -80,12 +80,15 @@ def test_family_tree_positions_root_and_spouse_ring_the_base(
     fp = scene.family_tree_positions(built_kg.store, "I1")
     root_z = fp.person_positions["person:I1"][2]
     spouse_z = fp.person_positions["person:I2"][2]
-    # The ring sits near the base, not dipped below it (a full sphere would
-    # place roughly half its points at negative z).
-    assert root_z >= 0
-    assert spouse_z >= 0
-    assert root_z < fp.trunk_height * 0.1
-    assert spouse_z < fp.trunk_height * 0.1
+    # Raised off z=0 (a couple flush with the trunk's base reads as buried,
+    # not planted) but still below LIMB_START, where the first family limb
+    # branches -- the founding generation is older than every family it
+    # started. Not dipped below the trunk's own base either (a full sphere
+    # would place roughly half its points at negative z).
+    assert root_z >= fp.trunk_height * scene.ROOT_RING_HEIGHT_FRACTION * 0.5
+    assert spouse_z >= fp.trunk_height * scene.ROOT_RING_HEIGHT_FRACTION * 0.5
+    assert root_z < fp.trunk_height * scene.LIMB_START
+    assert spouse_z < fp.trunk_height * scene.LIMB_START
 
 
 def test_family_tree_positions_person_family_tracks_birth_family(

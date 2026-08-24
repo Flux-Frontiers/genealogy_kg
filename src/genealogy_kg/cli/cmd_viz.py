@@ -24,9 +24,28 @@ import click
 
 from genealogy_kg.cli.group import cli
 from genealogy_kg.cli.options import db_option, generations_option, repo_option
+from genealogy_kg.config import load_default_xref
 from genealogy_kg.module import GenealogyKG
 
 _VIZ_EXTRA = 'pip install "genealogy-kg[viz]"'
+
+
+def _resolve_xref(xref: str | None, repo_root: Path) -> str:
+    """Fall back to ``[tool.genealogykg] default_xref`` when XREF is omitted.
+
+    :param xref: The XREF argument as passed on the command line, or ``None``.
+    :param repo_root: Repository root, for reading ``pyproject.toml``.
+    :raises click.UsageError: If XREF was omitted and no default is configured.
+    """
+    if xref is not None:
+        return xref
+    default = load_default_xref(repo_root)
+    if default is None:
+        raise click.UsageError(
+            "Missing argument XREF -- pass one, or set "
+            "[tool.genealogykg] default_xref in pyproject.toml."
+        )
+    return default
 
 
 @cli.command("viz")
@@ -144,7 +163,7 @@ preset_option = click.option(
 
 
 @cli.command("quilt")
-@click.argument("xref")
+@click.argument("xref", required=False)
 @repo_option
 @db_option
 @preset_option
@@ -193,7 +212,7 @@ preset_option = click.option(
     help="Draw the straight-line schematic instead of growing organic wood.",
 )
 def quilt(
-    xref: str,
+    xref: str | None,
     repo: str,
     db: str | None,
     preset: str,
@@ -211,7 +230,8 @@ def quilt(
     xref founds the tree -- their ancestors are not grown, since a GEDCOM can
     hold several unrelated lines with no single well-defined "the"
     progenitor to auto-detect. The tree is xref plus every descendant plus
-    every spouse who married in.
+    every spouse who married in. XREF may be omitted if
+    [tool.genealogykg] default_xref is set in pyproject.toml.
     """
     try:
         import pyvista as pv
@@ -233,7 +253,9 @@ def quilt(
         )
     spec = QUILT_PRESETS[preset]
 
-    kg = GenealogyKG(repo_root=Path(repo).resolve(), db_path=Path(db) if db else None)
+    repo_root = Path(repo).resolve()
+    xref = _resolve_xref(xref, repo_root)
+    kg = GenealogyKG(repo_root=repo_root, db_path=Path(db) if db else None)
 
     plotter = pv.Plotter(off_screen=True)
     try:
@@ -283,7 +305,7 @@ def quilt(
 
 
 @cli.command("viz3d")
-@click.argument("xref")
+@click.argument("xref", required=False)
 @repo_option
 @db_option
 @color_by_3d_option
@@ -296,7 +318,7 @@ def quilt(
     help="Draw the straight-line schematic instead of growing organic wood.",
 )
 def viz3d(
-    xref: str,
+    xref: str | None,
     repo: str,
     db: str | None,
     color_by: str,
@@ -308,7 +330,8 @@ def viz3d(
     """Launch an interactive 3-D viewer of xref's grown descent line.
 
     Orbit/zoom/pan with the mouse. The toolbar's "Cast to Looking Glass"
-    button sends the current view to Bridge.
+    button sends the current view to Bridge. XREF may be omitted if
+    [tool.genealogykg] default_xref is set in pyproject.toml.
     """
     if importlib.util.find_spec("PyQt5") is None or importlib.util.find_spec("pyvistaqt") is None:
         raise click.UsageError(
@@ -317,10 +340,12 @@ def viz3d(
 
     from genealogy_kg import viz3d as viewer
 
+    repo_root = Path(repo).resolve()
+    xref = _resolve_xref(xref, repo_root)
     db_path = Path(db) if db else None
     try:
         viewer.launch(
-            Path(repo).resolve(),
+            repo_root,
             db_path,
             xref,
             color_by=color_by,

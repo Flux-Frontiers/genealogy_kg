@@ -9,6 +9,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `scene.py`'s schematic renderer had three compounding geometry bugs, all
+  visible on the Bronte/Kennedy/Royal demos: the root/spouse generation sat
+  flush with `z=0` (reads as buried, not planted -- a trunk's founding
+  couple is not literally underground); branch/twig connectors used
+  PyVista's `line_width`, a screen-space pixel width rather than a world
+  unit, so they thinned to invisible on zoom-out and made leaves look
+  unconnected from any wood; and `tip_radius`/`leaf_size`/`branch_reach`
+  were single constants tuned against corpus-scale trees, so a 9-person
+  family (Bronte) rendered as an overlapping blob of near-touching spheres.
+  `family_tree_positions()` now raises the root/spouse ring to
+  `ROOT_RING_HEIGHT_FRACTION` (12% of trunk height, still below where the
+  first family limb branches) and scales `branch_reach`/cluster spacing by
+  a population-based `size_scale`; `build_family_tree_scene()` applies the
+  same `size_scale` to `tip_radius`/`leaf_size` and renders schematic
+  connectors as real 3-D tube geometry (`PolyData.tube()`) instead of line
+  width. Affects both `--schematic` and organic (`grow_tree`) modes, since
+  both consume the same positions.
 - `GenealogyKGAdapter.query()` and `pack()` raised `AttributeError` on every
   call: they name `KGKind.GENEALOGY`, which only arrived in kg-rag 0.15.0,
   while the `adapter` extra floored at `>=0.14.0` and resolved to 0.14.0. The
@@ -42,6 +59,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `genkg quilt`/`genkg viz3d`'s `XREF` argument is now optional: if omitted,
+  it falls back to `[tool.genealogykg] default_xref` in `pyproject.toml`
+  (`config.load_default_xref()`), erroring clearly if neither is set. A repo
+  built against one family's own GEDCOM no longer needs its root xref typed
+  on every invocation.
+- `Makefile` gains `famous-bronte`/`famous-kennedy`/`famous-royal`/
+  `famous-trees`: build a `.genealogykg` store from a public GEDCOM sample
+  and open it in `genkg viz3d --schematic`. `fetch-corpora` pulls the
+  samples via `scripts/fetch_corpora.sh`.
+- `corpora/vendored/`: three public-domain-era GEDCOMs (`bronte.ged`,
+  `washington.ged`, `EnglishTudorRoyalFamily.ged`) tracked in the repo --
+  the sole exception to "GEDCOMs are never committed" (`docs/CORPORA.md`,
+  `.claude/CLAUDE.md`). Each was checked person-by-person for anyone born
+  after 1920 with no recorded death before vendoring; `royal92.ged` was
+  vendored and then removed on that same check -- its root (William the
+  Conqueror, d. 1087) looks historical, but growing his descent line walks
+  straight into the living modern British and European royal families, so
+  `famous-royal` (like `famous-kennedy`, ruled out the same way) stays
+  fetch-only. See `corpora/vendored/NOTICE.md`.
 - Phase 4: 2-D family-tree diagrams, behind the `viz` extra. `viz.py` supplies
   only the genealogy vocabulary -- kinds, colours, shapes, tooltip fields --
   over the fleet's shared renderer, the same split `pycode_kg.graph_html` uses

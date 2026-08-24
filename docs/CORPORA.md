@@ -3,7 +3,9 @@
 No real family export exists for this project, and one would be personal
 data anyway. Development and testing run against public GEDCOM files fetched
 by `scripts/fetch_corpora.sh` into `corpora/`, which is gitignored. The only
-GEDCOM tracked in this repo is the fictional `tests/fixtures/sample.ged`.
+GEDCOMs tracked in this repo are the fictional `tests/fixtures/sample.ged`
+and the three public-domain-era historical trees under `corpora/vendored/`
+(below) -- everything else in `corpora/` is fetched, never committed.
 
 Surveyed 2026-08-23 with ged4py 0.5.2: 108 files fetched, 105 parse.
 
@@ -63,6 +65,22 @@ standard allows. ged4py warns once per file and reads them as cp1252 or
 cp437. The extractor should surface that warning in `build` output rather
 than hide it.
 
+## Vendored famous-tree demos
+
+`corpora/vendored/` is tracked, not fetched -- see
+`corpora/vendored/NOTICE.md` for the licensing basis, the person-by-person
+living-check every file here passed, and why `royal92.ged` was vendored and
+then removed on that same check (its own root looks historical, but growing
+his descent line walks straight into the living modern royal families).
+Used by `make famous-bronte`; `washington/` and `tudor/` have no dedicated
+target yet. `make famous-royal` stays fetch-only.
+
+| File | People | Root xref |
+|---|---|---|
+| `corpora/vendored/bronte/bronte.ged` | 14 | `I0001` |
+| `corpora/vendored/washington/washington.ged` | 529 | `I3` |
+| `corpora/vendored/tudor/EnglishTudorRoyalFamily.ged` | 347 | `I1` |
+
 ## Licensing
 
 - **D-Jeffrey/gedcom-samples** is dual-licensed MIT / CC0 1.0 by its
@@ -76,8 +94,11 @@ than hide it.
 - **Gramps `sample.ged`** lives in a GPL-2.0 repository. It is data, not
   code, and is used here as test input only.
 
-None of these files may be added to the repository. `*.ged` is gitignored
-outside `tests/fixtures/`, and `corpora/` is gitignored whole.
+None of these files may be added to the repository, with the sole exception
+of the three vendored under `corpora/vendored/` (above), each checked
+person-by-person for anyone born after 1920 with no recorded death.
+`*.ged` is gitignored outside `tests/fixtures/` and `corpora/vendored/`, and
+the rest of `corpora/` is gitignored whole.
 
 ## Refreshing
 

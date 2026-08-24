@@ -41,11 +41,18 @@ hook chain runs `ty` and the full test suite on every commit.
   `event:I1:BIRT`, `place:<slug>`, `source:S1` and must not change between
   builds of the same file.
 - Never add a real GEDCOM to the repo. `*.ged` is gitignored outside
-  `tests/fixtures/`.
+  `tests/fixtures/` and `corpora/vendored/` -- the latter is a curated set
+  of three public-domain-era historical trees (Bronte, Washington, Tudor)
+  checked person-by-person for anyone born after 1920 with no recorded
+  death; see `corpora/vendored/NOTICE.md` before adding a fourth. That check
+  is what it sounds like, not optional: `royal92.ged`'s own root (William
+  the Conqueror, d. 1087) looked safe, but his descent line walks straight
+  into the living modern royal families, so it was vendored and then
+  removed. `sample-kennedy` was excluded the same way.
 - Public test corpora: `./scripts/fetch_corpora.sh` fills `corpora/`
-  (gitignored). `docs/CORPORA.md` says which file exercises what. Tests
-  that need them are marked `integration` and skip when `corpora/` is
-  missing.
+  (gitignored, except `corpora/vendored/`). `docs/CORPORA.md` says which
+  file exercises what. Tests that need the fetched (non-vendored) ones are
+  marked `integration` and skip when they're missing.
 
 ## Architecture
 
