@@ -122,6 +122,11 @@ class GedcomFile:
         return self.reader.records0(tag)
 
     def _ensure_line_starts(self) -> None:
+        """Lazily compute and cache the byte offset of every line start.
+
+        Only needed by :meth:`line_of`, so most callers (which never ask
+        for a line number) never pay for it.
+        """
         if self._line_starts is None:
             self._line_starts = _line_starts(self.path.read_bytes())
 

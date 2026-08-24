@@ -98,6 +98,14 @@ class GenealogySnapshotManager(_BaseSnapshotManager):
     def _compute_delta_from_metrics(
         self, new_m: dict[str, Any], old_m: dict[str, Any]
     ) -> dict[str, Any]:
+        """Extend the base delta with per-kind deltas for :data:`GENEALOGY_METRICS`.
+
+        :param new_m: The newer snapshot's metrics dict.
+        :param old_m: The older snapshot's metrics dict.
+        :return: The base class's delta, plus one entry per metric in
+            :data:`GENEALOGY_METRICS` (``people``, ``families``, ``events``,
+            ``places``).
+        """
         delta = super()._compute_delta_from_metrics(new_m, old_m)
         for key in GENEALOGY_METRICS:
             delta[key] = new_m.get(key, 0) - old_m.get(key, 0)

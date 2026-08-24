@@ -33,10 +33,23 @@ class GenealogyKGAdapter(KGAdapter):
     """
 
     def __init__(self, entry: KGEntry, embedder: Any = None) -> None:
+        """Construct the adapter without touching the underlying store.
+
+        :param entry: KGEntry with ``kind=KGKind.GENEALOGY``, describing
+            where the store lives on disk.
+        :param embedder: Optional shared embedder, unused by this adapter
+            (accepted only to satisfy the base class's constructor).
+        """
         super().__init__(entry, embedder=embedder)
         self._kg: GenealogyKG | None = None
 
     def _load(self) -> None:
+        """Lazily construct the wrapped GenealogyKG on first use.
+
+        Every public method (``query``, ``pack``, ``stats``, ``analyze``,
+        ``display``) calls this before touching ``self._kg``, so a
+        constructed-but-unused adapter never opens a database connection.
+        """
         if self._kg is not None:
             return
         entry = self.entry
@@ -55,6 +68,11 @@ class GenealogyKGAdapter(KGAdapter):
 
     @staticmethod
     def _score(node: dict[str, Any]) -> float:
+        """Extract the rank score kg_utils.pipeline nests under ``relevance``.
+
+        :param node: A node dict as returned by ``GenealogyKG.query``/``pack``.
+        :return: The relevance score, or ``0.0`` if absent.
+        """
         return float(node.get("relevance", {}).get("score", 0.0))
 
     def query(

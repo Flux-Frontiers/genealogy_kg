@@ -1,0 +1,140 @@
+{
+  "key": "bd4f4d083ce37614539e1022d03763610eda2dfb",
+  "branch": "docs/improve-docstrings",
+  "timestamp": "2026-08-24T22:29:42.703079+00:00",
+  "version": "0.21.4",
+  "metrics": {
+    "db_path": ".pycodekg/graph.sqlite",
+    "total_nodes": 2631,
+    "meaningful_nodes": 214,
+    "total_edges": 2350,
+    "node_counts": {
+      "class": 13,
+      "function": 107,
+      "method": 63,
+      "module": 31,
+      "symbol": 2417
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 611,
+      "CALLS": 904,
+      "CONTAINS": 183,
+      "IMPORTS": 282,
+      "INHERITS": 5,
+      "RESOLVES_TO": 365
+    },
+    "module_count": 31,
+    "class_count": 13,
+    "function_count": 107,
+    "method_count": 63,
+    "docstring_coverage": 0.925,
+    "snapshot_count": 2,
+    "critical_issues": 1,
+    "complexity_median": 4,
+    "module_node_counts": {
+      "src/genealogy_kg/__init__.py": 3,
+      "src/genealogy_kg/adapter.py": 113,
+      "src/genealogy_kg/analysis.py": 76,
+      "src/genealogy_kg/cli/__init__.py": 2,
+      "src/genealogy_kg/cli/__main__.py": 1,
+      "src/genealogy_kg/cli/cmd_analyze.py": 10,
+      "src/genealogy_kg/cli/cmd_build.py": 25,
+      "src/genealogy_kg/cli/cmd_corpus.py": 37,
+      "src/genealogy_kg/cli/cmd_hooks.py": 21,
+      "src/genealogy_kg/cli/cmd_lineage.py": 25,
+      "src/genealogy_kg/cli/cmd_query.py": 32,
+      "src/genealogy_kg/cli/cmd_snapshot.py": 102,
+      "src/genealogy_kg/cli/cmd_status.py": 19,
+      "src/genealogy_kg/cli/cmd_viz.py": 117,
+      "src/genealogy_kg/cli/group.py": 2,
+      "src/genealogy_kg/cli/main.py": 1,
+      "src/genealogy_kg/cli/options.py": 27,
+      "src/genealogy_kg/config.py": 49,
+      "src/genealogy_kg/corpus.py": 147,
+      "src/genealogy_kg/extractor.py": 306,
+      "src/genealogy_kg/gedcom.py": 83,
+      "src/genealogy_kg/lineage.py": 151,
+      "src/genealogy_kg/mcp_server.py": 61,
+      "src/genealogy_kg/module.py": 116,
+      "src/genealogy_kg/scene.py": 259,
+      "src/genealogy_kg/snapshots.py": 33,
+      "src/genealogy_kg/temporal.py": 56,
+      "src/genealogy_kg/theme.py": 29,
+      "src/genealogy_kg/validation.py": 29,
+      "src/genealogy_kg/viz.py": 125,
+      "src/genealogy_kg/viz3d.py": 85
+    }
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/genealogy_kg/mcp_server.py:_get_kg",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter._load",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/extractor.py:_xref",
+      "callers": 6,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.stats",
+      "callers": 6,
+      "callees": 8,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/extractor.py:GedcomExtractor.is_living",
+      "callers": 5,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.__init__",
+      "callers": 5,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/config.py:_pyproject_table",
+      "callers": 4,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/corpus.py:EntryMeta.name",
+      "callers": 4,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/cli/cmd_snapshot.py:_snapshots_dir",
+      "callers": 4,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/temporal.py:temporal_keys",
+      "callers": 4,
+      "callees": 2,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "[WARN] 1 orphaned functions found (`_lifespan_row`) -- consider archiving or documenting"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 1161,
+    "edges": 968,
+    "coverage_delta": 0.17000000000000004,
+    "critical_issues_delta": 0
+  }
+}
