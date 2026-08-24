@@ -174,16 +174,16 @@ uv.lock
 .codex/
 
 # GEDCOM sources are personal data. Track only tests/fixtures/*.ged and
-# corpora/vendored/ -- public-domain-era historical figures with no
-# living-person exposure; see corpora/vendored/NOTICE.md for what and why.
+# corpora/entries/ -- public-domain-era historical figures with no
+# living-person exposure; see corpora/entries/NOTICE.md for what and why.
 *.ged
 !tests/fixtures/*.ged
-!corpora/vendored/**/*.ged
+!corpora/entries/**/*.ged
 
 # Public test corpora fetched by scripts/fetch_corpora.sh; never tracked,
-# except corpora/vendored/ -- see corpora/vendored/NOTICE.md.
+# except corpora/entries/ -- see corpora/entries/NOTICE.md.
 corpora/*
-!corpora/vendored/
+!corpora/entries/
 
 # MCP server config -- machine-specific, contains absolute paths
 .mcp.json
