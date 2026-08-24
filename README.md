@@ -115,6 +115,7 @@ Before sharing a store, turn on the living-person filter and rebuild:
 [tool.genealogykg]
 sources = ["family.ged"]
 living_cutoff_years = 100
+unknown_birth_policy = "redact"
 ```
 
 Anyone with no death or burial record who was born within the last 100
@@ -122,10 +123,17 @@ years is then stored as a bare `person` node named `Living`: their lineage
 edges and sex are kept so trees still walk through them, but their name,
 dates, events, notes and citations are dropped, and their name is withheld
 from every family, spouse and parent mention too. A family with a living
-spouse keeps its members but not its marriage details. Two things the
-filter does not do: a person with no birth date at all is never redacted,
-and `pack` reads the GEDCOM file in place, so share the `.genealogykg/`
-store without the `.ged` file.
+spouse keeps its members but not its marriage details.
+
+`unknown_birth_policy` controls records that have neither a usable birth
+date nor a death/burial record. The default, `"keep"`, preserves historical
+data completeness and existing behavior. The conservative `"redact"` mode
+withholds those uncertain records; this may also hide historical people whose
+dates are simply incomplete. A death or burial record always counts as
+affirmative evidence that the person is not living.
+
+`pack` reads the GEDCOM file in place, so share the `.genealogykg/` store
+without the `.ged` file.
 
 ### Git hook
 

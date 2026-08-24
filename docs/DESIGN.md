@@ -108,10 +108,17 @@ named `Living`: xref, sex and lineage edges kept (so trees still walk
 through them), name, dates, events, notes, citations and `surname` dropped,
 and their name withheld from every other node's prose -- family names,
 children lists, spouse phrases, parents. A family with a living spouse also
-drops its `MARR` date, place, event and temporal keys. Two limits, both
-documented rather than papered over: a person with no birth date at all is
-never redacted (the rule needs a year to compare), and `pack()` reads the
-GEDCOM file in place, so a redacted store must travel without the file.
+drops its `MARR` date, place, event and temporal keys.
+
+Unknown birth status is configurable with `[tool.genealogykg]
+unknown_birth_policy = "keep" | "redact"` or the matching `GenealogyKG`
+argument. `"keep"` is the backward-compatible default. `"redact"` is the
+conservative mode: when no usable birth year and no `DEAT`/`BURI` record
+exist, the person is treated as living. It closes the fail-open privacy gap
+at the cost of hiding some historical people with incomplete records. A
+`DEAT` or `BURI` record is affirmative evidence even when its own date is
+missing. `pack()` reads the GEDCOM file in place, so a redacted store must
+travel without the file.
 
 ## Graph model
 

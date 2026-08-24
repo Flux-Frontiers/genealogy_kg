@@ -19,7 +19,7 @@ from kg_utils.semantic import DEFAULT_MODEL
 from kg_utils.specs import QueryResult, SnippetPack
 
 from genealogy_kg.analysis import analyze_graph, render_report
-from genealogy_kg.config import load_living_cutoff, load_sources
+from genealogy_kg.config import load_living_cutoff, load_sources, load_unknown_birth_policy
 from genealogy_kg.extractor import EDGE_KINDS, GedcomExtractor
 from genealogy_kg.lineage import FamilyTree, ascii_tree
 
@@ -79,6 +79,10 @@ class GenealogyKG(KGModule):
         within this many years of today. When ``None``, resolved from
         ``[tool.genealogykg] living_cutoff_years`` at build time; unset there
         too means no redaction.
+    :param unknown_birth_policy: How to handle people without a usable birth
+        date or death/burial evidence: ``"keep"`` or ``"redact"``. When
+        ``None``, resolved from ``[tool.genealogykg] unknown_birth_policy``;
+        unset there preserves the person.
     """
 
     _default_dir = ".genealogykg"
@@ -92,10 +96,12 @@ class GenealogyKG(KGModule):
         sources: list[Path] | None = None,
         model: str = DEFAULT_MODEL,
         living_cutoff_years: int | None = None,
+        unknown_birth_policy: str | None = None,
     ) -> None:
         super().__init__(repo_root, db_path, vectors_path, model=model)
         self.sources = sources
         self.living_cutoff_years = living_cutoff_years
+        self.unknown_birth_policy = unknown_birth_policy
 
     def make_extractor(self) -> GedcomExtractor:
         """Return the GEDCOM extractor for the configured sources.
@@ -106,7 +112,15 @@ class GenealogyKG(KGModule):
         cutoff = self.living_cutoff_years
         if cutoff is None:
             cutoff = load_living_cutoff(self.repo_root)
-        return GedcomExtractor(self.repo_root, sources=sources, living_cutoff_years=cutoff)
+        policy = self.unknown_birth_policy
+        if policy is None:
+            policy = load_unknown_birth_policy(self.repo_root)
+        return GedcomExtractor(
+            self.repo_root,
+            sources=sources,
+            living_cutoff_years=cutoff,
+            unknown_birth_policy=policy,
+        )
 
     def kind(self) -> str:
         """Return the KG kind string.

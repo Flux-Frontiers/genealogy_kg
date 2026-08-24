@@ -9,6 +9,7 @@ from pathlib import Path
 from click.testing import CliRunner
 
 from genealogy_kg.cli import cli
+from genealogy_kg.module import GenealogyKG
 
 
 def test_build_query_pack_status_analyze_round_trip(corpus_root: Path) -> None:
@@ -124,6 +125,16 @@ def test_build_honours_living_cutoff_from_pyproject(corpus_root: Path) -> None:
     assert build.exit_code == 0, build.output
     analyze = runner.invoke(cli, ["analyze", "--repo", str(corpus_root)])
     assert "Living people redacted: 5" in analyze.output
+
+
+def test_unknown_birth_policy_is_loaded_from_pyproject(corpus_root: Path) -> None:
+    (corpus_root / "pyproject.toml").write_text(
+        '[tool.genealogykg]\nsources = ["family.ged"]\nunknown_birth_policy = "redact"\n'
+    )
+
+    extractor = GenealogyKG(repo_root=corpus_root).make_extractor()
+
+    assert extractor.unknown_birth_policy == "redact"
 
 
 def test_install_hooks(tmp_path: Path) -> None:
