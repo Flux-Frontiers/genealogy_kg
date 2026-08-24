@@ -193,6 +193,23 @@ markers = [
     "integration: marks tests that exercise real external dependencies (model, sqlite-vec)",
 ]
 
+[tool.coverage.run]
+# Pure entry-point boilerplate (no branching logic of their own) and the Qt
+# viewer, which needs a live QApplication event loop -- exercising it is a
+# manual/GUI concern, not something worth a headless-Qt CI setup for. Every
+# other module is real logic and stays counted.
+omit = [
+    "src/genealogy_kg/cli/__main__.py",
+    "src/genealogy_kg/cli/main.py",
+    "src/genealogy_kg/viz3d.py",
+]
+
+[tool.coverage.report]
+# A floor against regression, not a target -- see docs/CODEBASE_REVIEW.md
+# item 6. Re-raise it as real coverage grows; CI's test job doesn't install
+# the viz3d extra, so this is checked against that leaner profile.
+fail_under = 80
+
 [tool.genealogykg]
 # GEDCOM files to index, relative to the repo root. `genkg build
 # --source` overrides this and records its choice in .genealogykg/config.json.
