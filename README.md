@@ -14,9 +14,9 @@ temporal contract.
 
 *Author: Eric G. Suchanek, PhD -- Flux-Frontiers, Liberty TWP, OH*
 
-> **Status: pre-alpha.** The repository structure, CI and design are in
-> place; the extractor is not. See [docs/DESIGN.md](docs/DESIGN.md) for the
-> plan and phases.
+> **Status: pre-alpha.** `build`, `query`, `pack`, `analyze` and `status`
+> work end to end (Phase 1). Lineage walks (`ancestors`/`descendants`) and
+> the KGRAG adapter are Phase 2. See [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Overview
 

@@ -1,7 +1,7 @@
 # GenealogyKG design plan
 
 Author: Eric G. Suchanek, PhD
-Status: Phase 0 complete (skeleton, CI, fixture). Phase 1 not started.
+Status: Phase 0 and Phase 1 complete (2026-08-23). Phase 2 not started.
 
 GenealogyKG turns a GEDCOM file into a KGModule: a SQLite graph of people,
 families, events, places and sources, a sqlite-vec index over prose summaries
@@ -180,7 +180,7 @@ Repo structure per fleet conventions, CI (lint, type, test, wheel smoke
 test), release workflow, fixture GEDCOM, this document. Source modules exist
 with their public signatures and raise `NotImplementedError`.
 
-### Phase 1: build, query, pack (0.1.0)
+### Phase 1: build, query, pack (0.1.0) -- done 2026-08-23
 
 1. `gedcom.py`: open a file, iterate `INDI`/`FAM`/`SOUR`, compute line spans
    from offsets, format names and places.
@@ -193,7 +193,8 @@ with their public signatures and raise `NotImplementedError`.
 5. `cli/cmd_build.py`, `cmd_query.py`, `cmd_status.py`. Test through
    `click.testing.CliRunner` on the fixture.
 6. `pack()` returns the GEDCOM record for `person:I1` with the right line
-   numbers. This is the acceptance test for the whole phase.
+   numbers. This is the acceptance test for the whole phase --
+   `tests/test_build_query_pack.py::test_pack_returns_the_original_gedcom_record`.
 7. Build `corpora/torture/TGC551LF.ged` (ANSEL, every 5.5 tag),
    `corpora/gedcom-samples/royal/royal92.ged` (no `GEDC` header) and
    `corpora/gedcom-samples/pres/pres2020.ged` (5.5.1, BOM) without error

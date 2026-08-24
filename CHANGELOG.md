@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 1: `build`, `query`, `pack`, `analyze` and `status` work end to
+  end. `GedcomExtractor` emits the full graph model from docs/DESIGN.md
+  (person/family/event/place/source nodes; CHILD_IN/SPOUSE_IN/PARENT_OF/
+  MARRIED_TO/HAS_EVENT/OCCURRED_AT/CITES edges, derived exactly once from
+  each FAM record). `temporal_keys()`/`person_temporal_keys()` derive the
+  fleet temporal contract from every GEDCOM date qualifier (ABT/CAL/EST/
+  BEF/AFT/BET/FROM/TO/PERIOD). 45 tests, including the acceptance test
+  that `pack()` returns the original GEDCOM record with correct line
+  numbers, and an integration suite against the torture-test (ANSEL,
+  every 5.5 tag), royal92 (no GEDC header) and pres2020 (BOM) corpora.
 - Repository skeleton per fleet conventions: Poetry/PEP 621 packaging with
   `dev` and `kg` groups, ruff/ty/pytest/detect-secrets pre-commit chain, CI
   with a wheel smoke test, tag-driven release workflow with PyPI trusted
