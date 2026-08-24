@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 from pathlib import Path
 
@@ -127,7 +128,13 @@ def test_build_honours_living_cutoff_from_pyproject(corpus_root: Path) -> None:
 
 
 def test_install_hooks(tmp_path: Path) -> None:
-    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    # Strip any inherited GIT_DIR/GIT_WORK_TREE/etc: when this test itself runs
+    # inside a git hook (e.g. the pre-commit hook invoking pytest), git has
+    # already set these for the current process, and `git init` in a fresh
+    # directory honours them over the path argument -- pointing the new repo
+    # at the *outer* .git instead of tmp_path/.git.
+    clean_env = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True, env=clean_env)
     runner = CliRunner()
     result = runner.invoke(cli, ["install-hooks", "--repo", str(tmp_path)])
     assert result.exit_code == 0, result.output
