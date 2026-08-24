@@ -6,6 +6,7 @@ License: Elastic 2.0
 
 import genealogy_kg.cli.cmd_analyze  # noqa: F401
 import genealogy_kg.cli.cmd_build  # noqa: F401
+import genealogy_kg.cli.cmd_corpus  # noqa: F401
 import genealogy_kg.cli.cmd_lineage  # noqa: F401
 import genealogy_kg.cli.cmd_query  # noqa: F401
 import genealogy_kg.cli.cmd_snapshot  # noqa: F401

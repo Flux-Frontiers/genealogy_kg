@@ -12,6 +12,7 @@ License: Elastic 2.0
 from genealogy_kg.cli import (
     cmd_analyze,  # noqa: F401
     cmd_build,  # noqa: F401
+    cmd_corpus,  # noqa: F401
     cmd_hooks,  # noqa: F401
     cmd_lineage,  # noqa: F401
     cmd_query,  # noqa: F401
