@@ -16,10 +16,15 @@ from typing import Any
 
 from kg_utils.pipeline import KGModule
 from kg_utils.semantic import DEFAULT_MODEL
-from kg_utils.specs import QueryResult, SnippetPack
+from kg_utils.specs import BuildStats, QueryResult, SnippetPack
 
 from genealogy_kg.analysis import analyze_graph, render_report
-from genealogy_kg.config import load_living_cutoff, load_sources, load_unknown_birth_policy
+from genealogy_kg.config import (
+    load_living_cutoff,
+    load_sources,
+    load_unknown_birth_policy,
+    save_sources,
+)
 from genealogy_kg.extractor import EDGE_KINDS, GedcomExtractor
 from genealogy_kg.lineage import FamilyTree, ascii_tree
 from genealogy_kg.lineage import ancestors as _walk_ancestors
@@ -126,6 +131,30 @@ class GenealogyKG(KGModule):
         """
         return self
 
+    def build(self, *, wipe: bool = False) -> BuildStats:
+        """Build the graph, persisting the sources this instance was given.
+
+        Every later ``GenealogyKG(repo_root=...)`` construction -- one per
+        CLI invocation, one per MCP server startup -- resolves its own
+        ``sources`` via :func:`~genealogy_kg.config.load_sources`, which
+        falls back to ``.genealogykg/config.json``. Without this override,
+        only ``genkg build``'s own explicit ``save_sources()`` call writes
+        that file; a store built by calling ``.build()`` directly leaves it
+        missing, so a later instance resolves ``sources=[]`` -- silently,
+        since ``query``/``pack``/``get_person``/etc. only need the already-
+        built SQLite and work fine regardless. The one place this bites is
+        ``pack()``'s living-person redaction, which must re-scan the GEDCOM
+        file for spans to strip: with no sources to scan, ``living_spans()``
+        is trivially empty, which looks identical to "no living people
+        found" -- see :meth:`pack`.
+
+        :param wipe: Clear existing data before writing.
+        :return: :class:`~kg_utils.specs.BuildStats`.
+        """
+        if self.sources:
+            save_sources(self.repo_root, self.sources)
+        return super().build(wipe=wipe)
+
     def make_extractor(self) -> GedcomExtractor:
         """Return the GEDCOM extractor for the configured sources.
 
@@ -211,6 +240,8 @@ class GenealogyKG(KGModule):
             :func:`_redact_snippet_overlaps`.
         :raises ValueError: If ``q``, ``k``, ``hop``, or ``max_nodes`` is out
             of bounds.
+        :raises RuntimeError: If living-person redaction is configured but no
+            GEDCOM sources resolved to verify it against -- see below.
         """
         q = require_query(q)
         bounded_int("k", k, 1, MAX_K)
@@ -222,6 +253,20 @@ class GenealogyKG(KGModule):
         extractor = self.make_extractor()
         if extractor.living_cutoff_years is None:
             return result
+        if not extractor.sources:
+            # living_spans() re-scans the GEDCOM file for spans to strip; with
+            # no sources resolved it is trivially empty -- indistinguishable
+            # from "no living people found" if we just fell through. That
+            # would silently serve unredacted records the moment a store's
+            # config.json goes missing (see build()'s docstring). Fail loud
+            # instead: this is the boundary the privacy filter depends on.
+            raise RuntimeError(
+                "living_cutoff_years is configured but no GEDCOM sources "
+                "resolved -- refusing to pack() without being able to verify "
+                "redaction. Pass sources explicitly, or run 'genkg build "
+                "--source ...' (or set [tool.genealogykg] sources in "
+                "pyproject.toml) so this repo's sources can be found."
+            )
         living_spans = extractor.living_spans()
         if not living_spans:
             return result
