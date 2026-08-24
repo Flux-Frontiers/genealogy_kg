@@ -10,8 +10,12 @@ from genealogy_kg.gedcom import GedcomFile
 from genealogy_kg.module import GenealogyKG
 
 
-def _build(corpus_root: Path) -> GenealogyKG:
-    kg = GenealogyKG(repo_root=corpus_root, sources=[Path("family.ged")])
+def _build(corpus_root: Path, living_cutoff_years: int | None = None) -> GenealogyKG:
+    kg = GenealogyKG(
+        repo_root=corpus_root,
+        sources=[Path("family.ged")],
+        living_cutoff_years=living_cutoff_years,
+    )
     kg.build(wipe=True)
     return kg
 
@@ -53,6 +57,28 @@ def test_pack_returns_the_original_gedcom_record(corpus_root: Path) -> None:
     assert ged_lines[i1_span.lineno - 1] == "0 @I1@ INDI"
     assert any("Hartwell" in line for line in ged_lines[start - 1 : end])
     assert "1 NOTE Emigrated" in "\n".join(ged_lines[start - 1 : end])
+
+
+def test_pack_does_not_leak_a_redacted_living_person(corpus_root: Path) -> None:
+    # Eliza (I4) is redacted under a 200-year cutoff (born 1851, no DEAT/BURI
+    # -- see test_extractor.py's test_living_filter_redacts_undead_people_...).
+    # She is I1's daughter via family F1, two hops from a query seeded on I1:
+    # I1 -SPOUSE_IN-> F1 -CHILD_IN-> I4. hop=2 is enough to sweep her into
+    # the pack the same way the acceptance test above sweeps in I1 at hop=0.
+    kg = _build(corpus_root, living_cutoff_years=200)
+    pack = kg.pack("John Hartwell ironmonger", k=5, hop=2)
+
+    eliza_nodes = [n for n in pack.nodes if n.get("id") == "person:I4"]
+    assert eliza_nodes, "expected the redacted person:I4 among the packed nodes"
+    eliza = eliza_nodes[0]
+
+    # The graph-level redaction (name/qualname) is already covered by
+    # test_extractor.py; what this test guards is pack()'s own source
+    # grounding, which reads a node's lineno/end_lineno straight off the
+    # GEDCOM file regardless of what its name/docstring say. Without a real
+    # span there, pack() cannot attach a snippet at all.
+    assert "snippet" not in eliza
+    assert not any("Eliza" in str(n.get("snippet", "")) for n in pack.nodes)
 
 
 def test_analyze_reports_counts(corpus_root: Path) -> None:

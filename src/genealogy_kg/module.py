@@ -31,6 +31,40 @@ DEFAULT_GENEALOGY_RELS: tuple[str, ...] = tuple(
 )
 
 
+def _redact_snippet_overlaps(
+    pack: SnippetPack, living_spans: dict[str, dict[str, tuple[int, int]]]
+) -> SnippetPack:
+    """Strip any line inside a living person's real record from every snippet.
+
+    A snippet's own node is never the redacted person -- ``_living_person``
+    already omits their span, so ``pack()`` cannot ground one for them
+    directly. This closes the other path: a legitimate neighbor's
+    context-padded window can run past its own record into the next one in
+    the file, which may belong to a living person redacted everywhere else.
+
+    :param pack: The result from ``super().pack()``.
+    :param living_spans: From :meth:`~genealogy_kg.extractor.GedcomExtractor.living_spans`.
+    :return: *pack*, mutated in place and returned for convenience.
+    """
+    for node in pack.nodes:
+        snippet = node.get("snippet")
+        if not snippet:
+            continue
+        file_spans = living_spans.get(snippet.get("path"))
+        if not file_spans:
+            continue
+        start = snippet["start"]
+        lines = snippet["text"].split("\n")
+        kept = [
+            line
+            for offset, line in enumerate(lines)
+            if not any(lo <= start + offset <= hi for lo, hi in file_spans.values())
+        ]
+        if len(kept) != len(lines):
+            snippet["text"] = "\n".join(kept)
+    return pack
+
+
 class GenealogyKG(KGModule):
     """Knowledge graph over one or more GEDCOM files.
 
@@ -124,9 +158,19 @@ class GenealogyKG(KGModule):
         :param hop: Graph expansion hops.
         :param rels: Edge types to follow; defaults to every relation except
             ``CITES``.
-        :return: :class:`~kg_utils.specs.SnippetPack`.
+        :return: :class:`~kg_utils.specs.SnippetPack`. When living-person
+            redaction is on, no returned snippet contains a line from a
+            redacted person's real GEDCOM record -- see
+            :func:`_redact_snippet_overlaps`.
         """
-        return super().pack(q, k=k, hop=hop, rels=rels, **kwargs)
+        result = super().pack(q, k=k, hop=hop, rels=rels, **kwargs)
+        extractor = self.make_extractor()
+        if extractor.living_cutoff_years is None:
+            return result
+        living_spans = extractor.living_spans()
+        if not living_spans:
+            return result
+        return _redact_snippet_overlaps(result, living_spans)
 
     def analysis(self) -> dict[str, Any]:
         """Return the analysis data: counts, generation depth, surnames, hygiene lists.

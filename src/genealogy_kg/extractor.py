@@ -154,6 +154,38 @@ class GedcomExtractor(KGExtractor):
         """Return a person's formatted name, or ``LIVING_NAME`` when redacted."""
         return LIVING_NAME if self.is_living(ind) else ind.name.format()
 
+    def living_spans(self) -> dict[str, dict[str, tuple[int, int]]]:
+        """Return the real line span of every living-redacted person, by source file.
+
+        Nowhere else keeps this: :meth:`_living_person` deliberately omits
+        the real span from the graph so a query against a redacted person
+        cannot ground a snippet back to their record. But ``pack()``'s
+        context padding is computed per *node*, and a legitimate neighbor's
+        padded window can still run past its own record into the next one in
+        the file -- if that neighbor is a redacted living person, their real
+        record leaks through a snippet that "belongs" to someone else
+        entirely. ``GenealogyKG.pack()`` uses this to clip that overlap back
+        out, regardless of which node's snippet it turned up in.
+
+        :return: ``{source_path: {xref: (lineno, end_lineno)}}``, only for
+            files and people actually redacted; empty when redaction is off.
+        """
+        if self._living_after_year is None:
+            return {}
+        result: dict[str, dict[str, tuple[int, int]]] = {}
+        for source in self.sources:
+            rel_path = str(Path(source))
+            with GedcomFile(self.repo_path / source) as gedcom:
+                spans = gedcom.spans()
+                file_spans = {
+                    xref: (spans[xref].lineno, spans[xref].end_lineno)
+                    for ind in gedcom.records("INDI")
+                    if self.is_living(ind) and (xref := _xref(ind)) in spans
+                }
+            if file_spans:
+                result[rel_path] = file_spans
+        return result
+
     def node_kinds(self) -> list[str]:
         """Return the node kinds this extractor emits.
 
@@ -329,7 +361,7 @@ class GedcomExtractor(KGExtractor):
         span = spans.get(xref)
         sex = ind.sub_tag_value("SEX")
         if self.is_living(ind):
-            yield from self._living_person(xref, span, rel_path, sex)
+            yield from self._living_person(xref, rel_path, sex)
             return
         name = ind.name.format()
         surname = ind.name.surname or ""
@@ -402,10 +434,16 @@ class GedcomExtractor(KGExtractor):
                     place_ids,
                 )
 
-    def _living_person(
-        self, xref: str, span: RecordSpan | None, rel_path: str, sex: Any
-    ) -> Iterator[NodeSpec]:
-        """Emit the redacted stand-in for a living person: no name, dates or events."""
+    def _living_person(self, xref: str, rel_path: str, sex: Any) -> Iterator[NodeSpec]:
+        """Emit the redacted stand-in for a living person: no name, dates or events.
+
+        ``lineno``/``end_lineno`` are deliberately omitted (never taken from
+        ``span``), not just the name and dates: ``KGModule.pack()`` grounds
+        snippets by re-reading the source file at a node's line span, so a
+        real span here would hand back the living person's actual GEDCOM
+        record -- name, dates, notes and all -- defeating the redaction
+        above it entirely. With no span, ``pack()`` skips the snippet.
+        """
         metadata: dict[str, Any] = {"gedcom_xref": xref, "living": True}
         if sex:
             metadata["sex"] = str(sex)
@@ -415,8 +453,8 @@ class GedcomExtractor(KGExtractor):
             name=LIVING_NAME,
             qualname=LIVING_NAME,
             source_path=rel_path,
-            lineno=span.lineno if span else None,
-            end_lineno=span.end_lineno if span else None,
+            lineno=None,
+            end_lineno=None,
             docstring=(
                 f"Living person; details withheld (living_cutoff_years={self.living_cutoff_years})."
             ),
