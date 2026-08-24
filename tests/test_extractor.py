@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import pytest
 from kg_utils.specs import EdgeSpec, NodeSpec
 
 from genealogy_kg.extractor import GedcomExtractor
@@ -203,3 +204,48 @@ def test_living_filter_withholds_the_name_from_other_nodes(corpus_root: Path) ->
     f2 = nodes["family:F2"]
     assert "Robert Hartwell" in f2.docstring and "Clara" not in f2.docstring
     assert "Living" in f2.docstring
+
+
+def test_conservative_living_filter_redacts_an_unusable_birth_date(tmp_path: Path) -> None:
+    ged_path = tmp_path / "unknown-date.ged"
+    ged_path.write_text(
+        """0 HEAD
+1 GEDC
+2 VERS 5.5.1
+1 CHAR UTF-8
+0 @I1@ INDI
+1 NAME Unknown /Birth/
+1 BIRT
+2 DATE (before the war)
+0 @I2@ INDI
+1 NAME Known /Dead/
+1 BIRT
+2 DATE (before the war)
+1 DEAT Y
+0 TRLR
+"""
+    )
+
+    nodes = {
+        node.node_id: node
+        for node in GedcomExtractor(
+            tmp_path,
+            sources=[Path("unknown-date.ged")],
+            living_cutoff_years=100,
+            unknown_birth_policy="redact",
+        ).extract()
+        if isinstance(node, NodeSpec)
+    }
+
+    assert nodes["person:I1"].name == "Living"
+    assert nodes["person:I2"].name == "Known Dead"
+
+
+def test_living_filter_rejects_an_unknown_birth_policy(corpus_root: Path) -> None:
+    with pytest.raises(ValueError, match='unknown_birth_policy must be "keep" or "redact"'):
+        GedcomExtractor(
+            corpus_root,
+            sources=[Path("family.ged")],
+            living_cutoff_years=100,
+            unknown_birth_policy="invalid",
+        )

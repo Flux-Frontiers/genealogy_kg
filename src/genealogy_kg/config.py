@@ -56,6 +56,15 @@ def load_living_cutoff(repo_root: Path) -> int | None:
     return int(value) if value is not None else None
 
 
+def load_unknown_birth_policy(repo_root: Path) -> str:
+    """Return the living-person policy for records without a usable birth date.
+
+    :param repo_root: Repository root.
+    :return: ``"keep"`` (the default) or the configured value.
+    """
+    return str(_pyproject_table(repo_root).get("unknown_birth_policy", "keep"))
+
+
 def load_default_xref(repo_root: Path) -> str | None:
     """Return ``[tool.genealogykg] default_xref``, or ``None`` when unset.
 

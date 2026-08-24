@@ -18,9 +18,9 @@ Living-person redaction (``living_cutoff_years``): a person with no death or
 burial record whose birth (or baptism/christening) falls within that many
 years of today is emitted as a bare ``person`` node named ``Living`` -- no
 name, dates, events, notes or citations -- and their name is withheld from
-every other node's prose too. Off unless configured. Note that ``pack()``
-reads the GEDCOM file in place, so the file itself must not travel with a
-redacted store.
+every other node's prose too. ``unknown_birth_policy="redact"`` also redacts
+people with no usable birth date and no death/burial evidence. Off unless
+configured.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
@@ -113,6 +113,8 @@ class GedcomExtractor(KGExtractor):
     :param sources: GEDCOM files to index, as paths relative to ``repo_path``.
     :param living_cutoff_years: Redact people without a death record born
         within this many years of today. ``None`` (the default) redacts nobody.
+    :param unknown_birth_policy: How to handle people with no usable birth
+        date and no death/burial evidence: ``"keep"`` (default) or ``"redact"``.
     """
 
     def __init__(
@@ -122,10 +124,14 @@ class GedcomExtractor(KGExtractor):
         sources: list[Path] | None = None,
         *,
         living_cutoff_years: int | None = None,
+        unknown_birth_policy: str = "keep",
     ) -> None:
         super().__init__(repo_path, config)
+        if unknown_birth_policy not in {"keep", "redact"}:
+            raise ValueError('unknown_birth_policy must be "keep" or "redact"')
         self.sources: list[Path] = list(sources) if sources else []
         self.living_cutoff_years = living_cutoff_years
+        self.unknown_birth_policy = unknown_birth_policy
         self._living_after_year: int | None = (
             date.today().year - living_cutoff_years if living_cutoff_years is not None else None
         )
@@ -139,7 +145,8 @@ class GedcomExtractor(KGExtractor):
 
         :param ind: A ged4py ``INDI`` record.
         :return: ``True`` when redaction is on, the person has no ``DEAT`` or
-            ``BURI`` record, and their birth year is after the cutoff.
+            ``BURI`` record, and their birth year is after the cutoff or their
+            birth date is unusable under the conservative policy.
         """
         if self._living_after_year is None:
             return False
@@ -148,7 +155,9 @@ class GedcomExtractor(KGExtractor):
         birth = _first_event(ind, ("BIRT", "BAPM", "CHR"))
         keys = temporal_keys(birth.sub_tag_value("DATE")) if birth is not None else {}
         born = keys.get("occurred_start") or keys.get("occurred_end")
-        return born is not None and int(born[:4]) > self._living_after_year
+        if born is None:
+            return self.unknown_birth_policy == "redact"
+        return int(born[:4]) > self._living_after_year
 
     def _name(self, ind: Any) -> str:
         """Return a person's formatted name, or ``LIVING_NAME`` when redacted."""
