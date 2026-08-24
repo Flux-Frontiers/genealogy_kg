@@ -25,6 +25,15 @@ REPORT_LIMIT = 20
 
 
 def _surname(node: dict[str, Any]) -> str:
+    """Return a person's surname for the report's surname-frequency table.
+
+    Prefers ``metadata.surname`` (set for non-redacted people); falls back
+    to the part of ``qualname`` before the first comma (``"Surname, Given"``),
+    which is empty for a redacted living person.
+
+    :param node: A person node dict.
+    :return: The surname, or ``""`` when neither source has one.
+    """
     meta = node.get("metadata") or {}
     if meta.get("surname"):
         return str(meta["surname"])
@@ -177,6 +186,13 @@ def render_report(data: dict[str, Any], stats: dict[str, Any]) -> str:
 
 
 def _hygiene_section(title: str, items: list[dict[str, Any]]) -> list[str]:
+    """Render one Markdown section listing a hygiene-check result.
+
+    :param title: Section heading, e.g. ``"People with no family links"``.
+    :param items: Node dicts to list, each needing ``name`` and ``id``.
+    :return: Markdown lines, capped at :data:`REPORT_LIMIT` items with a
+        ``"... N more"`` line for the rest.
+    """
     lines = [f"### {title}: {len(items)}"]
     if items:
         lines.append("")

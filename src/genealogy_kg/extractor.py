@@ -78,6 +78,12 @@ def _xref(rec: Any) -> str:
 
 
 def _sex_word(sex: Any) -> str:
+    """Render a GEDCOM ``SEX`` value as a word, e.g. ``"M"`` -> ``"male"``.
+
+    :param sex: A GEDCOM ``SEX`` value, or falsy for unknown.
+    :return: ``"male"``/``"female"``, the lowercased raw value for anything
+        else, or ``""`` when ``sex`` is falsy.
+    """
     if not sex:
         return ""
     s = str(sex).strip().upper()
@@ -225,6 +231,18 @@ class GedcomExtractor(KGExtractor):
     def _extract_file(
         self, rel_path: Path, place_ids: dict[str, str]
     ) -> Iterator[NodeSpec | EdgeSpec]:
+        """Extract every source, family and person node from one GEDCOM file.
+
+        Sources first, then families, then people -- families and people
+        both cite sources by xref, and _person() needs nothing from
+        _family() (spouse/parent phrasing walks the GEDCOM record directly,
+        not the family nodes already yielded).
+
+        :param rel_path: The file's path, relative to ``repo_path``.
+        :param place_ids: Shared place-id cache across every file in this
+            build, so the same place text resolves to the same node.
+        :return: Every node and edge this file contributes.
+        """
         abs_path = self.repo_path / rel_path
         rel_str = str(rel_path)
         with GedcomFile(abs_path) as gedcom:
@@ -240,6 +258,13 @@ class GedcomExtractor(KGExtractor):
 
     @staticmethod
     def _recorded_at(gedcom: GedcomFile) -> str | None:
+        """Return the GEDCOM header's own export date, if it has one.
+
+        :param gedcom: The open file to read the header from.
+        :return: ISO date string, or ``None`` when the header carries no
+            simple date (used as the ``recorded_at`` temporal key on every
+            node this file contributes).
+        """
         header_dv = gedcom.header_date()
         if header_dv is not None and header_dv.kind == DateValueTypes.SIMPLE:
             return iso_date(header_dv.date)
@@ -250,6 +275,14 @@ class GedcomExtractor(KGExtractor):
     # ------------------------------------------------------------------
 
     def _source(self, src: Any, rel_path: str, spans: dict[str, RecordSpan]) -> Iterator[NodeSpec]:
+        """Yield one ``source`` node for a GEDCOM ``SOUR`` record.
+
+        :param src: A ged4py ``SOUR`` record.
+        :param rel_path: The owning file's path, relative to ``repo_path``.
+        :param spans: This file's xref -> line-span map, from
+            :meth:`~genealogy_kg.gedcom.GedcomFile.spans`.
+        :return: The single ``source:<xref>`` node.
+        """
         xref = _xref(src)
         span = spans.get(xref)
         title = src.sub_tag_value("TITL") or xref
@@ -273,6 +306,15 @@ class GedcomExtractor(KGExtractor):
         )
 
     def _cites(self, subject_id: str, rec: Any) -> Iterator[EdgeSpec]:
+        """Yield a ``CITES`` edge for every ``SOUR`` citation on a record.
+
+        :param subject_id: Node id of the citing node (a person, family or
+            event).
+        :param rec: The ged4py record to read ``SOUR`` sub-tags from.
+        :return: One edge per source citation with an xref (bare
+            ``SOUR <text>`` lines with no xref are not citations to a
+            ``source`` node and are skipped).
+        """
         for s in rec.sub_tags("SOUR"):
             if getattr(s, "tag", None) == "SOUR" and getattr(s, "xref_id", None):
                 yield EdgeSpec(subject_id, f"source:{_xref(s)}", "CITES")
@@ -290,6 +332,22 @@ class GedcomExtractor(KGExtractor):
         place_ids: dict[str, str],
         gedcom: GedcomFile,
     ) -> Iterator[NodeSpec | EdgeSpec]:
+        """Yield a ``family`` node, its membership/marriage edges, and its ``MARR`` event.
+
+        A living spouse's marriage date is a date about a living person, so
+        it is dropped -- see :meth:`is_living` -- but the family keeps its
+        structure (members, ``SPOUSE_IN``/``CHILD_IN``/``PARENT_OF`` edges).
+
+        :param fam: A ged4py ``FAM`` record.
+        :param rel_path: The owning file's path, relative to ``repo_path``.
+        :param spans: This file's xref -> line-span map.
+        :param recorded_at: This file's header export date, if any.
+        :param place_ids: Shared place-id cache; passed through to the
+            ``MARR`` event's own place resolution.
+        :param gedcom: The open file, for the ``MARR`` event's source line.
+        :return: The family node, its edges, and the ``MARR`` event's own
+            node/edges (attributed to the family, not double-counted).
+        """
         xref = _xref(fam)
         span = spans.get(xref)
         husb = fam.sub_tag("HUSB")
@@ -366,6 +424,25 @@ class GedcomExtractor(KGExtractor):
         place_ids: dict[str, str],
         gedcom: GedcomFile,
     ) -> Iterator[NodeSpec | EdgeSpec]:
+        """Yield a ``person`` node -- redacted, if living -- from a GEDCOM ``INDI`` record.
+
+        Builds the person's prose summary (name, sex, birth/death, occupation,
+        parents, spouses, notes) that the semantic index searches over. When
+        :meth:`is_living` is true, delegates to ``_living_person`` instead
+        and returns early: no name, dates, events, notes or citations are
+        emitted, only the bare node the graph needs to keep lineage edges
+        walkable.
+
+        :param ind: A ged4py ``INDI`` record.
+        :param rel_path: The owning file's path, relative to ``repo_path``.
+        :param spans: This file's xref -> line-span map.
+        :param recorded_at: This file's header export date, if any.
+        :param place_ids: Shared place-id cache, unused directly here but
+            threaded through for symmetry with ``_family``/``_event``.
+        :param gedcom: The open file, unused directly here (kept for the
+            same reason as ``place_ids``).
+        :return: The person node.
+        """
         xref = _xref(ind)
         span = spans.get(xref)
         sex = ind.sub_tag_value("SEX")
@@ -472,6 +549,12 @@ class GedcomExtractor(KGExtractor):
 
     @staticmethod
     def _event_sentence(verb: str, ev: Any) -> str:
+        """Render one line of a person's summary, e.g. ``"Born 1820 in Yorkshire."``.
+
+        :param verb: The lead word, e.g. ``"Born"``/``"Died"``.
+        :param ev: The event's ged4py record, for its ``DATE``/``PLAC``.
+        :return: A single sentence, date and place included where present.
+        """
         bits = [verb]
         date = ev.sub_tag_value("DATE")
         place = ev.sub_tag_value("PLAC")
@@ -482,6 +565,18 @@ class GedcomExtractor(KGExtractor):
         return " ".join(bits) + "."
 
     def _spouse_phrases(self, ind: Any, xref: str) -> list[str]:
+        """Return one phrase per spouse for a person's summary, e.g. ``"Mary Ashcombe, married 1846"``.
+
+        Withholds a living spouse's name (``LIVING_NAME``) and marriage
+        date -- the family the marriage belongs to still keeps its
+        structure via ``_family``, this only guards the prose attached to
+        the *other* spouse's person node.
+
+        :param ind: The person's ged4py ``INDI`` record.
+        :param xref: That person's own xref, to pick the *other* spouse out
+            of each family they belong to.
+        :return: One phrase per family this person is a spouse in.
+        """
         phrases: list[str] = []
         for fam in ind.sub_tags("FAMS"):
             husb = fam.sub_tag("HUSB")
@@ -514,6 +609,26 @@ class GedcomExtractor(KGExtractor):
         recorded_at: str | None,
         place_ids: dict[str, str],
     ) -> Iterator[NodeSpec | EdgeSpec]:
+        """Yield an ``event`` node for one GEDCOM event, plus its edges.
+
+        Node id is ``event:<owner_xref>:<TAG>``, or ``:<TAG>:<ordinal>`` past
+        the first of the same tag on one owner (e.g. a second ``RESI``).
+        Emits ``HAS_EVENT`` from the owner, and ``OCCURRED_AT`` to a
+        ``place`` node (via :meth:`_place`) when the event names one.
+
+        :param owner_id: Node id of the person or family this event belongs
+            to (e.g. ``person:I1`` for a birth, ``family:F1`` for a ``MARR``).
+        :param owner_xref: That owner's bare xref, used to build the event id.
+        :param tag: The GEDCOM event tag, e.g. ``"BIRT"``, ``"MARR"``.
+        :param ev: The event's ged4py record.
+        :param ordinal: 1-based occurrence of this tag on this owner.
+        :param rel_path: The owning file's path, relative to ``repo_path``.
+        :param gedcom: The open file, for the event's source line.
+        :param recorded_at: This file's header export date, if any.
+        :param place_ids: Shared place-id cache across the whole build.
+        :return: The event node, its ``HAS_EVENT``/``OCCURRED_AT`` edges, the
+            place node if new, and any ``CITES`` edges the event carries.
+        """
         suffix = f":{tag}" if ordinal == 1 else f":{tag}:{ordinal}"
         event_id = f"event:{owner_xref}{suffix}"
         line = gedcom.line_of(ev.offset)

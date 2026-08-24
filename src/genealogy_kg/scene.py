@@ -137,14 +137,33 @@ class FamilyTreePositions:
 
 
 def _family_spouses(store: GraphStore, family_id: str) -> list[str]:
+    """Return the person ids who are spouses in a family.
+
+    :param store: The graph store to query.
+    :param family_id: The family's node id.
+    :return: Person node ids linked to the family by ``SPOUSE_IN``.
+    """
     return [s["id"] for s in store.callers_of(family_id, rel="SPOUSE_IN")]
 
 
 def _family_children(store: GraphStore, family_id: str) -> list[str]:
+    """Return the person ids who are children in a family.
+
+    :param store: The graph store to query.
+    :param family_id: The family's node id.
+    :return: Person node ids linked to the family by ``CHILD_IN``.
+    """
     return [c["id"] for c in store.callers_of(family_id, rel="CHILD_IN")]
 
 
 def _birth_year(store: GraphStore, person_id: str) -> str:
+    """Return a person's birth year from their ``occurred_start`` temporal key.
+
+    :param store: The graph store to query.
+    :param person_id: The person's node id.
+    :return: The year as a string (whatever precision ``occurred_start``
+        carries), or ``""`` when the person or the key is missing.
+    """
     node = store.node(person_id)
     if node is None:
         return ""

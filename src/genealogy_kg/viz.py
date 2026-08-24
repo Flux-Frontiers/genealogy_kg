@@ -116,12 +116,29 @@ REL_COLOR: Final[dict[str, str]] = {
 
 
 def _lifespan_row(node: Mapping[str, Any]) -> str:
+    """Render a hover-tooltip row: ``"person - 1820-1891"``.
+
+    A ``TooltipRow`` callback (see :data:`GENEALOGY_TOOLTIP` below), not
+    called directly -- passed by reference, which static call-graph analysis
+    can miss and flag as unreferenced.
+
+    :param node: The hovered node.
+    :return: ``"<kind> - <life span>"``, or just ``<kind>`` when undated.
+    """
     kind = str(node.get("kind", ""))
     span = life_span(node)
     return f"{kind} - {span}" if span else kind
 
 
 def _source_row(node: Mapping[str, Any]) -> str:
+    """Render a hover-tooltip row: ``"family.ged:42"``.
+
+    A ``TooltipRow`` callback, same as :func:`_lifespan_row`.
+
+    :param node: The hovered node.
+    :return: ``"<path>:<line>"``, or just ``<path>`` when the node has no
+        line number (e.g. a redacted living person).
+    """
     path = node.get("module_path") or ""
     line = node.get("lineno")
     return f"{path}:{line}" if path and line else str(path)

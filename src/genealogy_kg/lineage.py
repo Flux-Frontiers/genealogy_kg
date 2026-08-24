@@ -170,6 +170,16 @@ class FamilyTree:
 
 
 def _spouse_names(store: GraphStore, person_id: str) -> list[str]:
+    """Return a person's spouse names for the ASCII tree's ``m. ...`` suffix.
+
+    ``MARRIED_TO`` is stored husband -> wife only but is conceptually
+    symmetric, so both directions are walked (see the module docstring).
+
+    :param store: The graph store to walk.
+    :param person_id: The person's node id.
+    :return: One name per spouse, in edge order; a redacted spouse's name
+        is already ``"Living"`` on the node, so no separate check is needed.
+    """
     names: list[str] = []
     for edge in store.edges_from(person_id, rel="MARRIED_TO"):
         n = store.node(edge["dst"])
@@ -201,6 +211,12 @@ def life_span(node: Mapping[str, Any]) -> str:
 
 
 def _label(store: GraphStore, node: dict[str, Any]) -> str:
+    """Return one person's tree-row text: name, life span, spouse(s).
+
+    :param store: The graph store, for looking up spouses.
+    :param node: The person node to label.
+    :return: E.g. ``"John Hartwell (1820-1891) m. Mary Ashcombe"``.
+    """
     name = node.get("name") or node["id"]
     span = life_span(node)
     spouses = _spouse_names(store, node["id"])
@@ -211,6 +227,17 @@ def _label(store: GraphStore, node: dict[str, Any]) -> str:
 def _build_children(
     store: GraphStore, person_id: str, *, generations: int, depth: int, visited: set[str]
 ) -> list[dict[str, Any]]:
+    """Recursively build the descendant subtree rooted at ``person_id``.
+
+    :param store: The graph store to walk.
+    :param person_id: The person to start from (not included in the result
+        -- this returns their children, recursively).
+    :param generations: Maximum depth to descend.
+    :param depth: Current depth; the initial call passes ``0``.
+    :param visited: Node ids already on the current path, to stay cycle-safe.
+    :return: One ``{"node", "label", "children"}`` dict per child, each
+        ``"children"`` itself built the same way one generation deeper.
+    """
     if depth >= generations:
         return []
     out: list[dict[str, Any]] = []
@@ -240,6 +267,20 @@ def _build_children(
 def _build_parents(
     store: GraphStore, person_id: str, *, generations: int, depth: int, visited: set[str]
 ) -> list[dict[str, Any]]:
+    """Recursively build the ancestor subtree rooted at ``person_id``.
+
+    Mirrors :func:`_build_children`, walking ``PARENT_OF`` edges backward
+    (``callers_of``) instead of forward -- same shape, same key name
+    (``"children"``) for the ASCII renderer's benefit even though these are
+    ancestors, not descendants.
+
+    :param store: The graph store to walk.
+    :param person_id: The person to start from (not included in the result).
+    :param generations: Maximum depth to climb.
+    :param depth: Current depth; the initial call passes ``0``.
+    :param visited: Node ids already on the current path, to stay cycle-safe.
+    :return: One ``{"node", "label", "children"}`` dict per parent.
+    """
     if depth >= generations:
         return []
     out: list[dict[str, Any]] = []
@@ -264,6 +305,17 @@ def _build_parents(
 
 
 def _render(node: dict[str, Any], *, prefix: str, is_last: bool, is_root: bool) -> list[str]:
+    """Recursively render one ``_build_children``/``_build_parents`` subtree as ASCII lines.
+
+    :param node: A ``{"node", "label", "children"}`` dict from
+        :func:`_build_children`/:func:`_build_parents`.
+    :param prefix: The indentation/connector text accumulated so far.
+    :param is_last: Whether this is the last sibling at its level (picks
+        ``` `-- ``` vs ``+--``).
+    :param is_root: Whether this is the tree's root (no connector, no
+        indent contribution).
+    :return: One line per node in this subtree, in depth-first order.
+    """
     # Pure ASCII connectors (`+--`/`` `-- ``/`|`), not Unicode box-drawing --
     # this is genuinely an ASCII tree, not a Unicode one that merely looks
     # like one in most terminals.
