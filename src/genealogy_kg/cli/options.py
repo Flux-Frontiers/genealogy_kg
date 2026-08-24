@@ -44,3 +44,7 @@ k_option = click.option(
     show_default=True,
     help="Number of top results to return.",
 )
+
+generations_option = click.option(
+    "--generations", default=4, show_default=True, help="Maximum generations to walk."
+)

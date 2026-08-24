@@ -183,4 +183,8 @@ corpora/
 # MCP server config -- machine-specific, contains absolute paths
 .mcp.json
 .mcp.json.sav
+
+# `genkg viz` output. Self-contained HTML runs to megabytes because the
+# rendering library is inlined, and it is reproducible from the corpus.
+renders/
 # === end KG generated artifacts ===

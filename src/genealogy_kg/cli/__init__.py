@@ -17,6 +17,7 @@ from genealogy_kg.cli import (
     cmd_query,  # noqa: F401
     cmd_snapshot,  # noqa: F401
     cmd_status,  # noqa: F401
+    cmd_viz,  # noqa: F401
 )
 from genealogy_kg.cli.group import cli
 

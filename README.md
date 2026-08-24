@@ -16,8 +16,8 @@ temporal contract.
 
 > **Status: pre-alpha.** `build`, `query`, `pack`, `analyze`, `status`,
 > ASCII lineage trees (`ancestors`/`descendants`), KGRAG federation, the
-> place hierarchy, the living-person filter and snapshots all work end to
-> end (Phase 1-3). 2-D and 3-D visualization are Phase 4-5.
+> place hierarchy, the living-person filter, snapshots and the 2-D `viz`
+> charts all work end to end (Phase 1-4). 3-D visualization is Phase 5.
 > See [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Overview
@@ -55,6 +55,10 @@ genkg pack "Hartwell marriages" --output context.md
 genkg ancestors I7 --generations 3
 genkg descendants I1
 
+# Family trees as self-contained HTML (needs the `viz` extra)
+genkg viz I1 --output tree.html
+genkg viz I1 --view network --color-by generation --output family.html
+
 # Generation depth, surnames, date coverage, people with no family links
 genkg analyze
 
@@ -73,6 +77,7 @@ genkg-mcp --repo .
 ```bash
 pip install genealogy-kg
 pip install "genealogy-kg[adapter]"   # + kg-rag, for the KGRAG adapter
+pip install "genealogy-kg[viz]"       # + plotly/pyvis, for `genkg viz`
 ```
 
 ### Local development

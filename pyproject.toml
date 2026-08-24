@@ -12,6 +12,8 @@
 # -------------------
 #   pip install -e "."                  core runtime only
 #   pip install -e ".[adapter]"         + kg-rag (for genealogy_kg.adapter)
+#   pip install -e ".[viz]"             + plotly/pyvis/streamlit (genkg viz)
+#   pip install -e ".[viz3d]"           + 3-D visualiser and light-field quilts
 #
 # Quick install (poetry)
 # ----------------------
@@ -80,8 +82,43 @@ dependencies = [
 # src/genealogy_kg/adapter.py imports kg_rag at module scope. It is not
 # exported from __init__.py, so the dependency is optional rather than core;
 # the fleet convention is that kg-rag ships its own lazy adapter as well.
+# 0.15.0 is a hard floor, not a preference: it is where `KGKind.GENEALOGY`
+# lands. Against 0.14.0 this adapter imports fine and then raises
+# AttributeError on the first query() or pack() -- which is exactly how the
+# defect survived Phases 1-3 unnoticed.
 adapter = [
-    "kg-rag>=0.14.0",
+    "kg-rag>=0.15.0",
+]
+# 2-D family-tree rendering: src/genealogy_kg/viz.py (pyvis network, plotly
+# pedigree chart) and the Streamlit branch of adapter.display(). Imported only
+# inside cli/cmd_viz.py and those entry points, so a bare install never pulls
+# any of it.
+#
+# pyvis is NOT hand-listed. The renderer is kg_utils.viz.build_graph_html, so
+# the SDK owns that dependency and this extra asks for it by name -- what
+# FLEET_STANDARDS.md requires, and what diary_kg's dead viz3d extra got wrong
+# by hand-listing the render stack and never depending on the SDK extra where
+# the code actually lives.
+viz = [
+    "kgmodule-utils[viz]>=0.18.0",
+    "plotly>=5.14.0",
+    "streamlit>=1.35.0",
+]
+# 3-D family-tree visualiser and light-field quilts (genkg viz3d / genkg
+# quilt), following gutenberg_kg's and pycode_kg's layering: the growth
+# engine and layouts (kg_utils.viz3d) live in kgmodule-utils, the swept-tube
+# / point-cloud composition and quilt output in quiltwright, and only the
+# domain glue -- which node becomes trunk, limb, or leaf -- here. Pulled via
+# kgmodule-utils[viz3d-render,viz3d-qt] rather than hand-listing pyvista /
+# PyQt5 / trame, per kgrag_priv/docs/FLEET_STANDARDS.md (diary_kg's viz3d
+# extra went dead the other way).
+viz3d = [
+    "markdown>=3.6",
+    "param>=2.0.0",
+    "PyQt5>=5.15.0",
+    "pyvistaqt>=0.11.0",
+    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.18.0",
+    "quiltwright>=0.7.0",
 ]
 
 # ---------------------------------------------------------------------------

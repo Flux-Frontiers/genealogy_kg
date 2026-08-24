@@ -16,6 +16,7 @@ License: Elastic 2.0
 from __future__ import annotations
 
 from collections import deque
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
@@ -179,24 +180,32 @@ def _spouse_names(store: GraphStore, person_id: str) -> list[str]:
     return names
 
 
-def _life_span(node: dict[str, Any]) -> str:
+def life_span(node: Mapping[str, Any]) -> str:
+    """Return a person's years as ``1801-1875``, ``b. 1801``, ``d. 1875`` or ``""``.
+
+    Reads only the temporal contract keys, so it works for any dated node.
+
+    :param node: Node dict.
+    :return: Display text, empty when the node carries no dates.
+    """
     metadata = node.get("metadata") or {}
     start = metadata.get("occurred_start")
     end = metadata.get("occurred_end")
     if start and end:
-        return f" ({start[:4]}-{end[:4]})"
+        return f"{start[:4]}-{end[:4]}"
     if start:
-        return f" (b. {start[:4]})"
+        return f"b. {start[:4]}"
     if end:
-        return f" (d. {end[:4]})"
+        return f"d. {end[:4]}"
     return ""
 
 
 def _label(store: GraphStore, node: dict[str, Any]) -> str:
     name = node.get("name") or node["id"]
+    span = life_span(node)
     spouses = _spouse_names(store, node["id"])
     marriage = f" m. {', '.join(spouses)}" if spouses else ""
-    return f"{name}{_life_span(node)}{marriage}"
+    return f"{name}{f' ({span})' if span else ''}{marriage}"
 
 
 def _build_children(
@@ -214,6 +223,7 @@ def _build_children(
             continue
         out.append(
             {
+                "node": node,
                 "label": _label(store, node),
                 "children": _build_children(
                     store,
@@ -239,6 +249,7 @@ def _build_parents(
             continue
         out.append(
             {
+                "node": node,
                 "label": _label(store, node),
                 "children": _build_parents(
                     store,
@@ -267,6 +278,44 @@ def _render(node: dict[str, Any], *, prefix: str, is_last: bool, is_root: bool) 
     return lines
 
 
+def tree_data(
+    store: GraphStore,
+    person_id: str,
+    *,
+    direction: str = "descendants",
+    generations: int = 4,
+) -> dict[str, Any] | None:
+    """Return the nested family walk that every family-tree renderer draws.
+
+    :func:`ascii_tree` and ``genealogy_kg.viz.pedigree_figure`` both consume
+    this, so the ASCII art and the 2-D chart agree on shape by construction
+    rather than by two independent walks kept in step by hand.
+
+    :param store: The graph store.
+    :param person_id: Node id such as ``person:I1``.
+    :param direction: ``"descendants"`` (default) or ``"ancestors"``.
+    :param generations: Maximum generations to walk.
+    :return: ``{"node": ..., "label": ..., "children": [...]}`` nested to
+        ``generations`` deep, or ``None`` when ``person_id`` is unknown.
+    :raises ValueError: If ``direction`` is neither ``"descendants"`` nor ``"ancestors"``.
+    """
+    if direction not in ("descendants", "ancestors"):
+        raise ValueError(f"direction must be 'descendants' or 'ancestors', got {direction!r}")
+
+    root = store.node(person_id)
+    if root is None:
+        return None
+
+    builder = _build_children if direction == "descendants" else _build_parents
+    return {
+        "node": root,
+        "label": _label(store, root),
+        "children": builder(
+            store, person_id, generations=generations, depth=0, visited={person_id}
+        ),
+    }
+
+
 def ascii_tree(
     store: GraphStore,
     person_id: str,
@@ -283,19 +332,8 @@ def ascii_tree(
     :return: A :class:`FamilyTree`; its text says so when ``person_id`` is unknown.
     :raises ValueError: If ``direction`` is neither ``"descendants"`` nor ``"ancestors"``.
     """
-    if direction not in ("descendants", "ancestors"):
-        raise ValueError(f"direction must be 'descendants' or 'ancestors', got {direction!r}")
-
-    root = store.node(person_id)
-    if root is None:
+    tree = tree_data(store, person_id, direction=direction, generations=generations)
+    if tree is None:
         return FamilyTree(person_id, direction, f"(no such person: {person_id})")
-
-    builder = _build_children if direction == "descendants" else _build_parents
-    tree = {
-        "label": _label(store, root),
-        "children": builder(
-            store, person_id, generations=generations, depth=0, visited={person_id}
-        ),
-    }
     text = "\n".join(_render(tree, prefix="", is_last=True, is_root=True))
     return FamilyTree(person_id, direction, text)

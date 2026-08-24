@@ -1,11 +1,20 @@
 # GenealogyKG design plan
 
 Author: Eric G. Suchanek, PhD
-Status: Phase 0 through 3 complete (2026-08-23) -- build/query/pack, lineage
-walks, ASCII family trees, KGRAG federation, the `WITHIN` place hierarchy,
-the living-person filter, Julian dates, the full `analyze()` report,
-snapshots and `install-hooks` all work end to end. Phases 4 (2-D viz) and 5
-(viz3d/holographic) are roadmapped below but not started.
+Status: Phase 0 through 4 complete (Phase 4 on 2026-08-24) -- build/query/pack,
+lineage walks, ASCII family trees, KGRAG federation, the `WITHIN` place
+hierarchy, the living-person filter, Julian dates, the full `analyze()`
+report, snapshots, `install-hooks` and the 2-D pedigree/network views all
+work end to end. Phase 5 (viz3d/holographic) is roadmapped below but not
+started.
+
+Known defect, not introduced by Phase 4: `adapter.py` names
+`KGKind.GENEALOGY`, which arrived in kg-rag 0.15.0 (kgrag commit `3dcb9ab`,
+alongside `genealogy_adapter.py`). The `adapter` extra floors at
+`kg-rag>=0.14.0`, so it resolves to 0.14.0 and `query()`/`pack()` raise
+`AttributeError`. Raise the floor to `>=0.15.0` once that release is on PyPI.
+The adapter has no test coverage, which is why this went unnoticed through
+Phases 1-3.
 
 GenealogyKG turns a GEDCOM file into a KGModule: a SQLite graph of people,
 families, events, places and sources, a sqlite-vec index over prose summaries
@@ -38,8 +47,9 @@ GEDCOM dates onto the fleet's temporal contract.
 - A federated `kgrag query --from 1840 --to 1900` includes genealogy hits,
   because every dated node carries `occurred_start` / `occurred_end`, and
   `kgrag` itself knows the kind (`KGKind.GENEALOGY`, registered 2026-08-23).
-- Later: `genkg viz I1 --output tree.html` (Phase 4) and
-  `genkg quilt I1` for a Looking Glass hologram (Phase 5).
+- `genkg viz I1 --output tree.html` draws the descent chart; `--view network`
+  draws the person/family topology around someone.
+- Later: `genkg quilt I1` for a Looking Glass hologram (Phase 5).
 
 ## Decisions
 
@@ -177,14 +187,15 @@ src/genealogy_kg/
   temporal.py       temporal_keys()/person_temporal_keys(): ged4py DateValue -> kg_utils.temporal
   extractor.py      GedcomExtractor(KGExtractor): the graph model above
   module.py         GenealogyKG(KGModule): kind(), analysis()/analyze(), rels defaults, tree()
-  lineage.py        ancestors(), descendants(), kinship_path(), ascii_tree()/FamilyTree
+  lineage.py        ancestors(), descendants(), kinship_path(), tree_data(), ascii_tree()/FamilyTree
   analysis.py       analyze_graph()/render_report(): the analyze() data and its Markdown
   config.py         [tool.genealogykg] sources + living_cutoff_years, .genealogykg/config.json
   snapshots.py      GenealogySnapshotManager over kg_utils.snapshots
   mcp_server.py     FastMCP: query_genealogy, pack_genealogy, get_person,
                     ancestors, descendants, family_tree, graph_stats, analyze_genealogy
   adapter.py        GenealogyKGAdapter for KGRAG (optional extra `adapter`)
-  viz.py            2-D family-tree rendering (Phase 4, not started)
+  viz.py            2-D rendering: pedigree_figure() (plotly), network_html()
+                    (the genealogy theme over kg_utils.viz.build_graph_html)
   scene.py          viz3d attractor/limb/leaf mapping for the holographic stack (Phase 5, not started)
   cli/
     group.py        root click group (`genkg`)
@@ -196,7 +207,7 @@ src/genealogy_kg/
     cmd_status.py   status
     cmd_snapshot.py snapshot save|list|show|diff
     cmd_hooks.py    install-hooks
-    cmd_viz.py      viz, quilt (Phase 4/5, not started)
+    cmd_viz.py      viz (--view pedigree|network); quilt lands here in Phase 5
 ```
 
 Storage: `.genealogykg/graph.sqlite`, `.genealogykg/vectors.sqlite`,
@@ -343,31 +354,53 @@ with their public signatures and raise `NotImplementedError`.
 
 25 new tests (83 total).
 
-### Phase 4: viz -- 2-D family-tree diagrams (0.4.0)
+### Phase 4: viz -- 2-D family-tree diagrams (0.4.0) -- done 2026-08-24
 
-The fleet convention for a KG's optional 2-D visualization is a `viz` extra
-(`plotly`, `pyvis`, `streamlit` -- see `diary_kg`'s `pyproject.toml`), never
-hand-rolled per repo. This phase is that extra plus the domain glue that
+The fleet convention for a KG's optional 2-D visualization is a `viz` extra,
+never hand-rolled per repo. This phase is that extra plus the domain glue that
 turns a `GenealogyKG` into the shapes those libraries draw:
 
-1. `viz.py`: `pyvis`/`plotly` network-graph rendering of the whole
+1. `viz.py`: `network_html()` renders the
    `person`/`family`/`CHILD_IN`/`SPOUSE_IN`/`MARRIED_TO` graph -- the
-   ontological view. Nodes coloured by sex or by generation depth from a
-   chosen root; edge style distinguishes `PARENT_OF` from `MARRIED_TO`.
-2. A `plotly` **pedigree/descent chart** -- the semantic view, and the
-   direct visual upgrade path from `ascii_tree()`: same recursive walk
-   (`lineage._build_children`/`_build_parents`), rendered as boxes and
-   connectors instead of box-drawing characters, so the two stay in visual
-   agreement rather than drifting into two independent layouts.
-3. `cli/cmd_viz.py`: `genkg viz <xref> --output tree.html`.
-4. `KGAdapter.display()` override in both `adapter.py` copies, so a
-   genealogy KG participates in kg-rag's Streamlit visualizer instead of
-   falling back to `KGAdapter`'s placeholder card.
-5. `pip install "genealogy-kg[viz]"`; nothing in `viz.py` imported outside
-   the `cli/cmd_viz.py` and `adapter.display()` entry points, so a bare
-   install never pulls `plotly`/`pyvis`/`streamlit`.
+   ontological view. People are coloured by sex or by generation depth from a
+   chosen root; each relation gets its own edge colour, with `PARENT_OF` and
+   `MARRIED_TO` loud and the membership edges they derive from muted.
+2. `pedigree_figure()` -- a `plotly` **pedigree/descent chart**, the semantic
+   view and the direct visual upgrade path from `ascii_tree()`. Both now walk
+   `lineage.tree_data()`, so they cannot drift into two independent layouts:
+   the walk was extracted rather than duplicated, and the chart keeps the ASCII
+   orientation (root on top, a row per generation).
+3. `cli/cmd_viz.py`: `genkg viz <xref> --output tree.html`, with `--view
+   pedigree|network`, `--direction`, `--generations`, `--color-by` and
+   `--max-nodes`.
+4. `KGAdapter.display()`: `SEMANTIC` draws the descent chart from a
+   progenitor, `ONTOLOGICAL` the network. Non-Streamlit backends and a missing
+   `viz` extra both fall back to the base placeholder card rather than failing
+   the visualizer.
+5. `pip install "genealogy-kg[viz]"`; nothing in `viz.py` is imported outside
+   the `cli/cmd_viz.py` and `adapter.display()` entry points, so a bare install
+   never pulls `plotly`/`pyvis`. A subprocess test asserts it, because this
+   environment has the extra installed and would hide a regression otherwise.
 
-Not started.
+Two things landed differently from the sketch above.
+
+**The renderer is not hand-rolled `pyvis`.** `kg_utils.viz.build_graph_html`
+already draws any KG's graph; what belongs here is only the genealogy
+vocabulary -- kinds, colours, tooltip fields -- exactly as
+`pycode_kg.graph_html` does for code. The `viz` extra therefore asks for
+`kgmodule-utils[viz]` and does *not* hand-list `pyvis`. Hand-listing the
+render stack while never depending on the SDK extra where the code lives is
+what left `diary_kg`'s `viz3d` extra dead; see `FLEET_STANDARDS.md`.
+
+**Only this repo's `adapter.py` got the override.** The second copy does
+exist -- `kg_rag.adapters.genealogy_adapter`, added in kg-rag 0.15.0 -- but
+that release was still unpublished when this landed, so the environment here
+resolves 0.14.0, which has neither that module nor `KGKind.GENEALOGY`.
+Porting `display()` into the kg-rag copy is a follow-up in that repo, and it
+pairs with raising this repo's `adapter` floor to `>=0.15.0`. See the status
+note at the top.
+
+25 new tests (108 total).
 
 ### Phase 5: viz3d -- the family tree, literally (0.5.0)
 

@@ -7,8 +7,29 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- `GenealogyKGAdapter.query()` and `pack()` raised `AttributeError` on every
+  call: they name `KGKind.GENEALOGY`, which only arrived in kg-rag 0.15.0,
+  while the `adapter` extra floored at `>=0.14.0` and resolved to 0.14.0. The
+  adapter imported cleanly and failed on first use, so nothing caught it
+  through Phases 1-3 -- it has no test coverage. Floor raised to
+  `kg-rag>=0.15.0`, which also makes `ty` pass again.
+
 ### Changed
 
+- The `viz` extra pulls `kgmodule-utils[viz]` rather than hand-listing
+  `pyvis`. The renderer is `kg_utils.viz.build_graph_html`, so the SDK owns
+  that dependency; hand-listing a render stack while never depending on the
+  SDK extra where the code lives is what left `diary_kg`'s `viz3d` extra
+  dead (`FLEET_STANDARDS.md`).
+- `lineage.tree_data()` is extracted from `ascii_tree()`, which now renders
+  it, and `life_span()` is public. The pedigree chart draws the same walk, so
+  the ASCII art and the 2-D chart agree by construction instead of being two
+  independent walks kept in step by hand. `--generations` moves to
+  `cli/options.py`, shared with `viz`. ASCII output is unchanged.
+- `renders/` is gitignored: `genkg viz` output runs to megabytes because the
+  rendering library is inlined, and it is reproducible from the corpus.
 - Console scripts are `genkg` and `genkg-mcp`, following `gutenkg`'s short
   form; `genealogykg`/`genealogykg-mcp` never shipped. The hook's opt-in
   variables are `GENKG_SNAPSHOT` / `GENKG_SKIP_SNAPSHOT`. The package
@@ -21,6 +42,38 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 4: 2-D family-tree diagrams, behind the `viz` extra. `viz.py` supplies
+  only the genealogy vocabulary -- kinds, colours, shapes, tooltip fields --
+  over the fleet's shared renderer, the same split `pycode_kg.graph_html` uses
+  for a code graph. `network_html()` draws the ontological view: the
+  person/family topology around someone, grown by hops from a root rather than
+  truncated to an arbitrary slice, with each relation its own edge colour and
+  the membership edges muted beneath `PARENT_OF`/`MARRIED_TO`.
+  `pedigree_figure()` draws the semantic view, a plotly descent chart in the
+  same orientation as `ascii_tree()` -- root on top, a row per generation, one
+  box per person with name and lifespan. `genkg viz <xref> --output tree.html`
+  writes either, self-contained, with `--view pedigree|network`,
+  `--direction`, `--generations`, `--color-by sex|generation` and
+  `--max-nodes`. `GenealogyKGAdapter.display()` renders both into a KGRAG
+  viewport (`SEMANTIC` the descent chart from a progenitor, `ONTOLOGICAL` the
+  network), falling back to the base placeholder card on non-Streamlit
+  backends and when the extra is absent rather than failing the visualizer.
+  Nothing in `viz.py` is imported outside those two entry points, so a bare
+  install never pulls `plotly` or `pyvis`; a subprocess test asserts it,
+  because this environment has the extra installed and would otherwise hide
+  the regression.
+- Phase 4 colours are chosen against colour-vision deficiency and tested for
+  it, not reviewed by eye. Sex uses Okabe-Ito blue/orange: the obvious
+  blue/rose pairing measures fine on a normal-vision monitor and collapses to
+  dE 7 -- one colour -- for a protanope, where blue/orange holds dE 30 across
+  all three dichromacies and survives greyscale printing. Generation uses
+  ColorBrewer RdBu with a neutral pivot, diverging in luminance per arm rather
+  than hue alone, lifting the worst adjacent step from dE 9 to dE 16. Shape
+  carries sex independently of colour, always, including under `--color-by
+  generation`: square for male, circle for female, as printed pedigrees have
+  done for a century. Tests simulate each dichromacy (Machado 2009) and assert
+  a CIELAB floor between any two swatches a reader must separate. 33 new tests
+  (116 total).
 - Phase 3: hygiene and analysis. `WITHIN` edges give every comma-separated
   `PLAC` level its own `place` node (`Cincinnati, Hamilton, Ohio, USA` ->
   `Hamilton, Ohio, USA` -> `Ohio, USA` -> `USA`), excluded from the

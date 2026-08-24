@@ -14,12 +14,8 @@ from pathlib import Path
 import click
 
 from genealogy_kg.cli.group import cli
-from genealogy_kg.cli.options import db_option, repo_option
+from genealogy_kg.cli.options import db_option, generations_option, repo_option
 from genealogy_kg.module import GenealogyKG
-
-generations_option = click.option(
-    "--generations", default=4, show_default=True, help="Maximum generations to walk."
-)
 
 
 @cli.command("ancestors")

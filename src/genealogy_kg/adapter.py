@@ -21,6 +21,7 @@ from typing import Any
 
 from kg_rag.adapters.base import KGAdapter, node_metadata
 from kg_rag.primitives import CrossHit, CrossSnippet, KGEntry, KGKind, QueryScope
+from kg_rag.viz import DisplayMode, RenderBackend, Viewport
 
 from genealogy_kg.module import GenealogyKG
 
@@ -172,6 +173,78 @@ class GenealogyKGAdapter(KGAdapter):
             return self._kg.analyze()
         except Exception as exc:  # noqa: BLE001 - analyze() must not raise
             return f"# GenealogyKG Analysis\n\nAnalysis failed: {exc}\n"
+
+    # ------------------------------------------------------------------
+    # Viewport display
+    # ------------------------------------------------------------------
+
+    def _display_root(self) -> str | None:
+        """Return the person a family tree should be rooted at.
+
+        The first person with no known parents -- a progenitor, which is what
+        a descent chart wants at its top. Store order is GEDCOM file order, so
+        the choice is deterministic for a given file.
+
+        :return: A ``person:`` node id, or ``None`` when the graph has nobody.
+        """
+        assert self._kg is not None
+        people = self._kg.store.query_nodes(kinds=["person"])
+        if not people:
+            return None
+        for person in people:
+            if not self._kg.store.callers_of(person["id"], rel="PARENT_OF"):
+                return str(person["id"])
+        return str(people[0]["id"])
+
+    def display(self, viewport: Viewport) -> None:
+        """Render the genealogy graph into a KGRAG viewport.
+
+        ``SEMANTIC`` draws the descent chart from a progenitor -- for a family
+        history the pedigree *is* the natural tree -- and ``ONTOLOGICAL`` draws
+        the person/family network. Both need the ``viz`` extra; without it, or
+        on a non-Streamlit backend, this falls back to the base placeholder
+        card rather than failing the whole visualizer.
+
+        :param viewport: The display region to render into. Never raises; a
+            failure renders an error card inside the viewport instead.
+        """
+        if viewport.backend != RenderBackend.STREAMLIT:
+            self._display_stub(viewport)
+            return
+        try:
+            import streamlit as st  # noqa: PLC0415
+            import streamlit.components.v1 as components  # noqa: PLC0415
+
+            from genealogy_kg import viz as render  # noqa: PLC0415
+
+            self._load()
+            root = viewport.metadata.get("root_id") or self._display_root()
+            if root is None:
+                with viewport.container:
+                    st.info(f"`{self.entry.name}` holds no people to draw.")
+                return
+
+            height = viewport.height or 600
+            with viewport.container:
+                if viewport.mode == DisplayMode.ONTOLOGICAL:
+                    assert self._kg is not None
+                    components.html(
+                        render.network_html(self._kg.store, root_id=root, height=f"{height}px"),
+                        height=height,
+                    )
+                else:
+                    assert self._kg is not None
+                    st.plotly_chart(
+                        render.pedigree_figure(self._kg.store, root),
+                        use_container_width=True,
+                    )
+        except ImportError:
+            self._display_stub(viewport)
+        except Exception as exc:  # noqa: BLE001 - display() must not raise
+            try:
+                viewport.container.error(f"GenealogyKG display failed: {exc}")
+            except Exception:  # noqa: BLE001 - the viewport itself is unusable
+                pass
 
     def _collect_snapshot_metrics(self) -> dict[str, Any]:
         """Return genealogy-specific metrics for the snapshot."""
