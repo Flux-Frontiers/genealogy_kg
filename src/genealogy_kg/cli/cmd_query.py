@@ -1,4 +1,4 @@
-"""``genealogykg query`` and ``genealogykg pack``.
+"""``genkg query`` and ``genkg pack``.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0

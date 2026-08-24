@@ -1,4 +1,4 @@
-"""``genealogykg status`` -- store location, sources and counts.
+"""``genkg status`` -- store location, sources and counts.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0

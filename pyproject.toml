@@ -26,7 +26,7 @@
 #
 # Build the genealogy graph
 # -------------------------
-#   genealogykg build --source family.ged
+#   genkg build --source family.ged
 
 [build-system]
 requires = ["poetry-core>=2.0.0"]
@@ -122,8 +122,8 @@ Homepage   = "https://github.com/Flux-Frontiers/genealogy_kg"
 Repository = "https://github.com/Flux-Frontiers/genealogy_kg"
 
 [project.scripts]
-genealogykg     = "genealogy_kg.cli:cli"
-genealogykg-mcp = "genealogy_kg.mcp_server:main"
+genkg     = "genealogy_kg.cli:cli"
+genkg-mcp = "genealogy_kg.mcp_server:main"
 
 # ---------------------------------------------------------------------------
 # Tool configuration
@@ -157,7 +157,7 @@ markers = [
 ]
 
 [tool.genealogykg]
-# GEDCOM files to index, relative to the repo root. `genealogykg build
+# GEDCOM files to index, relative to the repo root. `genkg build
 # --source` overrides this and records its choice in .genealogykg/config.json.
 sources = []
 

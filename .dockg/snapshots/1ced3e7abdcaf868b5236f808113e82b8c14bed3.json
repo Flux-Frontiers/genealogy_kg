@@ -1,0 +1,118 @@
+{
+  "key": "1ced3e7abdcaf868b5236f808113e82b8c14bed3",
+  "branch": "main",
+  "timestamp": "2026-08-24T03:33:09.220962+00:00",
+  "version": "0.21.1",
+  "metrics": {
+    "db_path": "/Users/egs/repos/genealogy_kg/.dockg/graph.sqlite",
+    "total_nodes": 1078,
+    "total_edges": 7785,
+    "node_counts": {
+      "chunk": 150,
+      "document": 9,
+      "entity": 401,
+      "keyword": 323,
+      "section": 62,
+      "topic": 133
+    },
+    "edge_counts": {
+      "CONTAINS": 212,
+      "CO_OCCURS_WITH": 5726,
+      "HAS_KEYWORD": 600,
+      "HAS_TOPIC": 154,
+      "MENTIONS_ENTITY": 860,
+      "NEXT": 85,
+      "REFERENCES": 4,
+      "SIMILAR_TO": 144
+    },
+    "meaningful_nodes": 1069,
+    "coverage_score": 0.9888888888888889,
+    "issues_count": 0,
+    "complexity_median": 17.0
+  },
+  "hotspots": [
+    {
+      "id": "chunk:corpora/torture/README.txt:0004",
+      "file_path": "corpora/torture/README.txt",
+      "label": "chunk:0005",
+      "references": 0,
+      "semantic_links": 22,
+      "total_links": 23
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0002",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "Gedcom Samples",
+      "references": 0,
+      "semantic_links": 20,
+      "total_links": 21
+    },
+    {
+      "id": "chunk:corpora/torture/README.txt:0000",
+      "file_path": "corpora/torture/README.txt",
+      "label": "chunk:0001",
+      "references": 0,
+      "semantic_links": 19,
+      "total_links": 20
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0005",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "basic",
+      "references": 0,
+      "semantic_links": 19,
+      "total_links": 19
+    },
+    {
+      "id": "chunk:CHANGELOG.md:0002",
+      "file_path": "CHANGELOG.md",
+      "label": "Added",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:corpora/torture/README.txt:0007",
+      "file_path": "corpora/torture/README.txt",
+      "label": "chunk:0008",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0003",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "Gedcom Samples",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 17
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0018",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "Kings and Queens of Europe",
+      "references": 0,
+      "semantic_links": 16,
+      "total_links": 17
+    },
+    {
+      "id": "chunk:corpora/torture/README.txt:0012",
+      "file_path": "corpora/torture/README.txt",
+      "label": "chunk:0013",
+      "references": 0,
+      "semantic_links": 16,
+      "total_links": 17
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0015",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "bourbon",
+      "references": 0,
+      "semantic_links": 16,
+      "total_links": 16
+    }
+  ],
+  "issues": [],
+  "vs_previous": null,
+  "vs_baseline": null
+}

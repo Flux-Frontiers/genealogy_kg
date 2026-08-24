@@ -43,27 +43,27 @@ The source file is read in place and never copied into the store.
 pip install genealogy-kg
 
 # Build the graph (creates .genealogykg/ in the current directory)
-genealogykg build --source family.ged
+genkg build --source family.ged
 
 # Search
-genealogykg query "emigrated from Yorkshire"
+genkg query "emigrated from Yorkshire"
 
 # Source-grounded snippets for an LLM context window
-genealogykg pack "Hartwell marriages" --output context.md
+genkg pack "Hartwell marriages" --output context.md
 
 # Lineage walks
-genealogykg ancestors I7 --generations 3
-genealogykg descendants I1
+genkg ancestors I7 --generations 3
+genkg descendants I1
 
 # Generation depth, surnames, date coverage, people with no family links
-genealogykg analyze
+genkg analyze
 
 # Point-in-time metrics, tracked in git
-genealogykg snapshot save
-genealogykg snapshot list
+genkg snapshot save
+genkg snapshot list
 
 # MCP server for Claude Code and other MCP clients
-genealogykg-mcp --repo .
+genkg-mcp --repo .
 ```
 
 ## Installation
@@ -90,7 +90,7 @@ repo itself, run `poetry install --with dev,kg`.
 
 ## Configuration
 
-`genealogykg build --source` records the file it used in
+`genkg build --source` records the file it used in
 `.genealogykg/config.json`; later builds reuse it. To pin sources in the
 project instead, list them in `pyproject.toml`:
 
@@ -124,8 +124,8 @@ store without the `.ged` file.
 
 ### Git hook
 
-`genealogykg install-hooks` writes a `pre-commit` hook that runs the repo's
-`pre-commit` checks on every commit. Set `GENEALOGYKG_SNAPSHOT=1` on a
+`genkg install-hooks` writes a `pre-commit` hook that runs the repo's
+`pre-commit` checks on every commit. Set `GENKG_SNAPSHOT=1` on a
 commit to also rebuild the store and save a snapshot; that is off by
 default because a snapshot staged into the commit it describes can never
 carry that commit's tree hash.

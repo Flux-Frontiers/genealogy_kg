@@ -112,7 +112,7 @@ def test_snapshot_save_list_show_diff(corpus_root: Path) -> None:
 def test_snapshot_save_without_a_store_fails_clearly(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["snapshot", "save", "--repo", str(tmp_path)])
     assert result.exit_code != 0
-    assert "genealogykg build" in result.output
+    assert "genkg build" in result.output
 
 
 def test_build_honours_living_cutoff_from_pyproject(corpus_root: Path) -> None:
@@ -133,7 +133,7 @@ def test_install_hooks(tmp_path: Path) -> None:
     assert result.exit_code == 0, result.output
     hook = tmp_path / ".git" / "hooks" / "pre-commit"
     assert hook.exists() and hook.stat().st_mode & 0o111
-    assert "GENEALOGYKG_SNAPSHOT" in hook.read_text()
+    assert "GENKG_SNAPSHOT" in hook.read_text()
 
     again = runner.invoke(cli, ["install-hooks", "--repo", str(tmp_path)])
     assert again.exit_code != 0 and "--force" in again.output

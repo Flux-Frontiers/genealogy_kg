@@ -1,4 +1,4 @@
-"""``genealogykg ancestors`` and ``genealogykg descendants``.
+"""``genkg ancestors`` and ``genkg descendants``.
 
 Both print an ASCII family tree (see ``genealogy_kg.lineage.ascii_tree``);
 the difference is only which direction they walk.

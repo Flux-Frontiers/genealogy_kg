@@ -28,12 +28,12 @@ def _get_kg() -> GenealogyKG:
     :raises RuntimeError: If the server was imported without going through main().
     """
     if _kg is None:
-        raise RuntimeError("GenealogyKG not initialised. Run via 'genealogykg-mcp --repo PATH'")
+        raise RuntimeError("GenealogyKG not initialised. Run via 'genkg-mcp --repo PATH'")
     return _kg
 
 
 mcp = FastMCP(
-    "genealogykg",
+    "genkg",
     instructions=(
         "GenealogyKG is a knowledge graph over a GEDCOM family-history file. "
         "People, families, events, places and sources are nodes; lineage and "
@@ -148,7 +148,7 @@ def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     :return: Parsed namespace.
     """
     p = argparse.ArgumentParser(
-        prog="genealogykg-mcp",
+        prog="genkg-mcp",
         description="GenealogyKG MCP server -- exposes genealogy graph tools to AI agents.",
     )
     p.add_argument("--repo", default=".", help="Repository root containing .genealogykg/")

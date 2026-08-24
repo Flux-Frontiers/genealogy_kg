@@ -1,4 +1,4 @@
-"""``genealogykg build`` -- GEDCOM file(s) -> SQLite graph + sqlite-vec index.
+"""``genkg build`` -- GEDCOM file(s) -> SQLite graph + sqlite-vec index.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0

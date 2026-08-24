@@ -34,5 +34,5 @@ env -u VIRTUAL_ENV -u POETRY_ACTIVE poetry run python -c \
 echo
 echo "Next steps:"
 echo "  poetry run pytest"
-echo "  poetry run genealogykg build --source path/to/family.ged"
+echo "  poetry run genkg build --source path/to/family.ged"
 echo "  make help"

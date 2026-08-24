@@ -1,0 +1,127 @@
+{
+  "key": "1ced3e7abdcaf868b5236f808113e82b8c14bed3",
+  "branch": "main",
+  "timestamp": "2026-08-24T03:32:51.380275+00:00",
+  "version": "0.21.4",
+  "metrics": {
+    "db_path": ".pycodekg/graph.sqlite",
+    "total_nodes": 1470,
+    "meaningful_nodes": 139,
+    "total_edges": 1382,
+    "node_counts": {
+      "class": 7,
+      "function": 58,
+      "method": 51,
+      "module": 23,
+      "symbol": 1331
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 343,
+      "CALLS": 533,
+      "CONTAINS": 116,
+      "IMPORTS": 163,
+      "INHERITS": 4,
+      "RESOLVES_TO": 223
+    },
+    "module_count": 23,
+    "class_count": 7,
+    "function_count": 58,
+    "method_count": 51,
+    "docstring_coverage": 0.755,
+    "snapshot_count": 0,
+    "critical_issues": 1,
+    "complexity_median": 4,
+    "module_node_counts": {
+      "src/genealogy_kg/__init__.py": 3,
+      "src/genealogy_kg/adapter.py": 78,
+      "src/genealogy_kg/analysis.py": 76,
+      "src/genealogy_kg/cli/__init__.py": 2,
+      "src/genealogy_kg/cli/__main__.py": 1,
+      "src/genealogy_kg/cli/cmd_analyze.py": 12,
+      "src/genealogy_kg/cli/cmd_build.py": 26,
+      "src/genealogy_kg/cli/cmd_hooks.py": 21,
+      "src/genealogy_kg/cli/cmd_lineage.py": 28,
+      "src/genealogy_kg/cli/cmd_query.py": 29,
+      "src/genealogy_kg/cli/cmd_snapshot.py": 106,
+      "src/genealogy_kg/cli/cmd_status.py": 20,
+      "src/genealogy_kg/cli/group.py": 2,
+      "src/genealogy_kg/cli/main.py": 1,
+      "src/genealogy_kg/cli/options.py": 11,
+      "src/genealogy_kg/config.py": 42,
+      "src/genealogy_kg/extractor.py": 290,
+      "src/genealogy_kg/gedcom.py": 83,
+      "src/genealogy_kg/lineage.py": 144,
+      "src/genealogy_kg/mcp_server.py": 60,
+      "src/genealogy_kg/module.py": 55,
+      "src/genealogy_kg/snapshots.py": 33,
+      "src/genealogy_kg/temporal.py": 56
+    }
+  },
+  "hotspots": [
+    {
+      "name": "cls:src/genealogy_kg/module.py:GenealogyKG",
+      "callers": 9,
+      "callees": 0,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/mcp_server.py:_get_kg",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.stats",
+      "callers": 6,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter._load",
+      "callers": 5,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/extractor.py:_xref",
+      "callers": 5,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/extractor.py:GedcomExtractor.is_living",
+      "callers": 4,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/cli/cmd_snapshot.py:_snapshots_dir",
+      "callers": 4,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/temporal.py:temporal_keys",
+      "callers": 4,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.__init__",
+      "callers": 4,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.pack",
+      "callers": 4,
+      "callees": 8,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "[WARN] Moderate docstring coverage (75.5%) \u2014 semantic retrieval quality is degraded for undocumented nodes; BM25 is as effective as embeddings without docstrings"
+  ],
+  "vs_previous": null,
+  "vs_baseline": null
+}

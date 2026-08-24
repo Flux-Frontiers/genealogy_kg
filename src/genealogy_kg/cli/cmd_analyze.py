@@ -1,4 +1,4 @@
-"""``genealogykg analyze`` -- Markdown analysis report.
+"""``genkg analyze`` -- Markdown analysis report.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0

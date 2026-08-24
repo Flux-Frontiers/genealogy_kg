@@ -1,6 +1,6 @@
 """genealogy_kg/analysis.py
 
-The data behind ``genealogykg analyze`` and the genealogy metrics a snapshot
+The data behind ``genkg analyze`` and the genealogy metrics a snapshot
 records: generation depth, surname distribution, date coverage per kind,
 people with no family links, places with no hierarchy, redacted people.
 

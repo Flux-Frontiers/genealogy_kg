@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Console scripts are `genkg` and `genkg-mcp`, following `gutenkg`'s short
+  form; `genealogykg`/`genealogykg-mcp` never shipped. The hook's opt-in
+  variables are `GENKG_SNAPSHOT` / `GENKG_SKIP_SNAPSHOT`. The package
+  (`genealogy_kg`), store directory (`.genealogykg`) and
+  `[tool.genealogykg]` table are unchanged; kg-rag keys on the directory.
+- `.gitignore` drops the `**/.<kind>kg/lancedb*` patterns, a leftover from
+  before the fleet moved to sqlite-vec; nothing writes those paths any
+  more. First PyCodeKG and DocKG snapshots of this repo are checked in
+  under `.pycodekg/snapshots/` and `.dockg/snapshots/`.
+
 ### Added
 
 - Phase 3: hygiene and analysis. `WITHIN` edges give every comma-separated
@@ -23,14 +35,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   report: generation depth, surname distribution, date coverage per kind,
   people with no family links, places with no hierarchy, redacted count.
   `snapshots.py` records those metrics over `kg_utils.snapshots`, with
-  people/families/events/places deltas; `genealogykg snapshot
-  save|list|show|diff` and `genealogykg install-hooks` (quality checks on
-  every commit, snapshot only under `GENEALOGYKG_SNAPSHOT=1`). 25 new
+  people/families/events/places deltas; `genkg snapshot
+  save|list|show|diff` and `genkg install-hooks` (quality checks on
+  every commit, snapshot only under `GENKG_SNAPSHOT=1`). 25 new
   tests (83 total).
 - Phase 2: `ancestors`/`descendants`/`kinship_path` lineage walks over
   `GraphStore`, and `ascii_tree()`/`FamilyTree` -- a pure-ASCII
   (`+--`/`` `-- ``/`|`, never Unicode box-drawing) family-tree renderer
-  whose `__repr__`/`__str__` print the tree directly. `genealogykg
+  whose `__repr__`/`__str__` print the tree directly. `genkg
   ancestors`/`descendants` and the new `family_tree` MCP tool both use
   it. `GenealogyKGAdapter` (this repo's `adapter` extra, and `kg-rag`'s
   own `KGKind.GENEALOGY` registration) reads `node["relevance"]["score"]`

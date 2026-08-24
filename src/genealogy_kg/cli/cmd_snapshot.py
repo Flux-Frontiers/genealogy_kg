@@ -1,4 +1,4 @@
-"""``genealogykg snapshot`` -- save, list, show and diff metric snapshots.
+"""``genkg snapshot`` -- save, list, show and diff metric snapshots.
 
 Snapshots live in ``.genealogykg/snapshots/`` (tracked in git) and are keyed
 by git tree hash, like every other KG in the fleet.
@@ -48,7 +48,7 @@ def save(
     repo_root = Path(repo).resolve()
     kg = GenealogyKG(repo_root=repo_root, db_path=Path(db) if db else None)
     if not kg.db_path.exists():
-        raise click.ClickException(f"No store at {kg.db_path}. Run 'genealogykg build' first.")
+        raise click.ClickException(f"No store at {kg.db_path}. Run 'genkg build' first.")
     try:
         stats = kg.stats()
         analysis = kg.analysis()
@@ -83,7 +83,7 @@ def list_(repo: str, limit: int | None, branch: str | None, as_json: bool) -> No
         click.echo(json.dumps(snaps, indent=2))
         return
     if not snaps:
-        click.echo("No snapshots yet. Run 'genealogykg snapshot save'.")
+        click.echo("No snapshots yet. Run 'genkg snapshot save'.")
         return
 
     header = f"{'Key':<12} {'Timestamp':<17} {'Version':<8} {'Nodes':>6} {'Edges':>6} "

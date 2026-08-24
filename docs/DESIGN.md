@@ -17,13 +17,13 @@ GEDCOM dates onto the fleet's temporal contract.
 
 ## What the reader gets
 
-- `genealogykg build --source family.ged` produces `.genealogykg/graph.sqlite`
+- `genkg build --source family.ged` produces `.genealogykg/graph.sqlite`
   and `.genealogykg/vectors.sqlite`.
-- `genealogykg query "chemists born in Cincinnati"` returns ranked person,
+- `genkg query "chemists born in Cincinnati"` returns ranked person,
   event and place nodes, expanded one hop through family links.
-- `genealogykg pack "Hartwell emigration"` returns the raw GEDCOM records
+- `genkg pack "Hartwell emigration"` returns the raw GEDCOM records
   behind each hit, with line numbers, ready for an LLM context window.
-- `genealogykg ancestors I7 --generations 3` and `descendants I1` print an
+- `genkg ancestors I7 --generations 3` and `descendants I1` print an
   ASCII family tree -- no semantic query, no plotting library, works over
   SSH:
 
@@ -33,13 +33,13 @@ GEDCOM dates onto the fleet's temporal contract.
   |   `-- Robert Hartwell (1876-1949) m. Louise Brandt
   `-- Eliza Hartwell (b. 1851) m. Samuel Pryce
   ```
-- `genealogykg-mcp` exposes the same operations to Claude Code and other MCP
+- `genkg-mcp` exposes the same operations to Claude Code and other MCP
   clients, including `family_tree` for the ASCII rendering.
 - A federated `kgrag query --from 1840 --to 1900` includes genealogy hits,
   because every dated node carries `occurred_start` / `occurred_end`, and
   `kgrag` itself knows the kind (`KGKind.GENEALOGY`, registered 2026-08-23).
-- Later: `genealogykg viz I1 --output tree.html` (Phase 4) and
-  `genealogykg quilt I1` for a Looking Glass hologram (Phase 5).
+- Later: `genkg viz I1 --output tree.html` (Phase 4) and
+  `genkg quilt I1` for a Looking Glass hologram (Phase 5).
 
 ## Decisions
 
@@ -187,7 +187,7 @@ src/genealogy_kg/
   viz.py            2-D family-tree rendering (Phase 4, not started)
   scene.py          viz3d attractor/limb/leaf mapping for the holographic stack (Phase 5, not started)
   cli/
-    group.py        root click group (`genealogykg`)
+    group.py        root click group (`genkg`)
     options.py      shared --repo/--db/--vectors/--model/-k options
     cmd_build.py    build
     cmd_query.py    query, pack
@@ -263,7 +263,7 @@ with their public signatures and raise `NotImplementedError`.
    notebook -- no plotting library, no build step. This is the zero-setup
    tier every heavier visualization in Phase 4/5 sits on top of: it works
    the moment `build` has run, on a laptop or over SSH, and it is what
-   `genealogykg ancestors`/`descendants` print and what the `family_tree`
+   `genkg ancestors`/`descendants` print and what the `family_tree`
    MCP tool returns.
 3. `GenealogyKG.tree()`; `cli/cmd_lineage.py`'s `ancestors`/`descendants`
    commands print it; MCP gained `family_tree` alongside the existing
@@ -336,9 +336,9 @@ with their public signatures and raise `NotImplementedError`.
    analysis)` over `kg_utils.snapshots`, with people/families/events/places
    deltas beside the shared node/edge ones and the `diary_kg`-style
    `get_previous()` fallback so an unsaved capture already carries
-   `vs_previous`. `genealogykg snapshot save|list|show|diff` and
-   `genealogykg install-hooks` (quality checks on every commit; the
-   rebuild-and-snapshot step only under `GENEALOGYKG_SNAPSHOT=1`, per
+   `vs_previous`. `genkg snapshot save|list|show|diff` and
+   `genkg install-hooks` (quality checks on every commit; the
+   rebuild-and-snapshot step only under `GENKG_SNAPSHOT=1`, per
    `kgrag_priv/docs/SNAPSHOT_STRATEGY.md`).
 
 25 new tests (83 total).
@@ -359,7 +359,7 @@ turns a `GenealogyKG` into the shapes those libraries draw:
    (`lineage._build_children`/`_build_parents`), rendered as boxes and
    connectors instead of box-drawing characters, so the two stay in visual
    agreement rather than drifting into two independent layouts.
-3. `cli/cmd_viz.py`: `genealogykg viz <xref> --output tree.html`.
+3. `cli/cmd_viz.py`: `genkg viz <xref> --output tree.html`.
 4. `KGAdapter.display()` override in both `adapter.py` copies, so a
    genealogy KG participates in kg-rag's Streamlit visualizer instead of
    falling back to `KGAdapter`'s placeholder card.
@@ -386,7 +386,7 @@ repo-to-trunk mapping are the pattern to follow.
 1. `scene.py`: root couple -> trunk seed, each `family` node -> a limb
    attractor, each `person` leaf placed along its parent limb by
    `occurred_start` year (falls back to generation depth when undated).
-2. `cli/cmd_viz.py` gains `quilt`: `genealogykg quilt <xref> --preset
+2. `cli/cmd_viz.py` gains `quilt`: `genkg quilt <xref> --preset
    <name>` -> a Looking Glass light-field quilt via `render_quilt`.
 3. `pip install "genealogy-kg[viz3d]"` (PyVista-backed, heavy); declare
    `"quiltwright>=0.4.0"` unmarked, per the fleet's current floor.

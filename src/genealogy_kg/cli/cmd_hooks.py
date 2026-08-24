@@ -1,7 +1,7 @@
-"""``genealogykg install-hooks`` -- a pre-commit hook for corpus repos.
+"""``genkg install-hooks`` -- a pre-commit hook for corpus repos.
 
 The hook runs the repo's ``pre-commit`` checks if it has any, then, only when
-``GENEALOGYKG_SNAPSHOT=1``, rebuilds the store and saves a snapshot. Snapshots
+``GENKG_SNAPSHOT=1``, rebuilds the store and saves a snapshot. Snapshots
 are off by default for the reason every fleet hook gives: a snapshot staged
 into the commit it describes can never match that commit's tree
 (kgrag_priv/docs/SNAPSHOT_STRATEGY.md).
@@ -21,10 +21,10 @@ from genealogy_kg.cli.group import cli
 
 _PRE_COMMIT_HOOK = """\
 #!/usr/bin/env bash
-# GenealogyKG pre-commit hook. Installed by: genealogykg install-hooks
+# GenealogyKG pre-commit hook. Installed by: genkg install-hooks
 #
-#   GENEALOGYKG_SNAPSHOT=1 git commit ...        opt in to a per-commit snapshot
-#   GENEALOGYKG_SKIP_SNAPSHOT=1 git commit ...   force snapshots off (wins)
+#   GENKG_SNAPSHOT=1 git commit ...        opt in to a per-commit snapshot
+#   GENKG_SKIP_SNAPSHOT=1 git commit ...   force snapshots off (wins)
 #
 # Snapshots are off by default: a snapshot staged into the commit it
 # describes records a tree hash that commit can never have. Snapshot at
@@ -41,13 +41,13 @@ elif command -v pre-commit >/dev/null 2>&1 && [ -f .pre-commit-config.yaml ]; th
     pre-commit run || exit 1
 fi
 
-[ "${GENEALOGYKG_SNAPSHOT:-0}" = "1" ] || exit 0
-[ "${GENEALOGYKG_SKIP_SNAPSHOT:-0}" = "1" ] && exit 0
+[ "${GENKG_SNAPSHOT:-0}" = "1" ] || exit 0
+[ "${GENKG_SKIP_SNAPSHOT:-0}" = "1" ] && exit 0
 
-if [ -x "$REPO_ROOT/.venv/bin/genealogykg" ]; then
-    GENEALOGYKG="$REPO_ROOT/.venv/bin/genealogykg"
+if [ -x "$REPO_ROOT/.venv/bin/genkg" ]; then
+    GENEALOGYKG="$REPO_ROOT/.venv/bin/genkg"
 else
-    GENEALOGYKG="$(command -v genealogykg)"
+    GENEALOGYKG="$(command -v genkg)"
 fi
 
 TREE_HASH=$(git write-tree)
@@ -55,7 +55,7 @@ BRANCH=$(git rev-parse --abbrev-ref HEAD)
 
 "$GENEALOGYKG" build --repo "$REPO_ROOT" || exit 1
 "$GENEALOGYKG" snapshot save --repo "$REPO_ROOT" --tree-hash "$TREE_HASH" --branch "$BRANCH" \\
-    || echo "[genealogykg] snapshot skipped" >&2
+    || echo "[genkg] snapshot skipped" >&2
 git add .genealogykg/snapshots/ 2>/dev/null || true
 
 exit 0
@@ -87,4 +87,4 @@ def install_hooks(repo: str, force: bool) -> None:
     hook_path.chmod(hook_path.stat().st_mode | stat.S_IXUSR | stat.S_IXGRP | stat.S_IXOTH)
 
     click.echo(f"Installed pre-commit hook: {hook_path}")
-    click.echo("  Snapshots are off by default. Opt in with GENEALOGYKG_SNAPSHOT=1 git commit ...")
+    click.echo("  Snapshots are off by default. Opt in with GENKG_SNAPSHOT=1 git commit ...")

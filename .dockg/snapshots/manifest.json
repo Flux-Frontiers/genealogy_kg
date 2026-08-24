@@ -1,0 +1,44 @@
+{
+  "format": "1.0",
+  "last_update": "2026-08-24T03:33:09.221384+00:00",
+  "snapshots": [
+    {
+      "key": "1ced3e7abdcaf868b5236f808113e82b8c14bed3",
+      "branch": "main",
+      "timestamp": "2026-08-24T03:33:09.220962+00:00",
+      "version": "0.21.1",
+      "file": "1ced3e7abdcaf868b5236f808113e82b8c14bed3.json",
+      "metrics": {
+        "db_path": "/Users/egs/repos/genealogy_kg/.dockg/graph.sqlite",
+        "total_nodes": 1078,
+        "total_edges": 7785,
+        "node_counts": {
+          "chunk": 150,
+          "document": 9,
+          "entity": 401,
+          "keyword": 323,
+          "section": 62,
+          "topic": 133
+        },
+        "edge_counts": {
+          "CONTAINS": 212,
+          "CO_OCCURS_WITH": 5726,
+          "HAS_KEYWORD": 600,
+          "HAS_TOPIC": 154,
+          "MENTIONS_ENTITY": 860,
+          "NEXT": 85,
+          "REFERENCES": 4,
+          "SIMILAR_TO": 144
+        },
+        "meaningful_nodes": 1069,
+        "coverage_score": 0.9888888888888889,
+        "issues_count": 0,
+        "complexity_median": 17.0
+      },
+      "deltas": {
+        "vs_previous": null,
+        "vs_baseline": null
+      }
+    }
+  ]
+}
