@@ -20,6 +20,7 @@ from kg_utils.specs import QueryResult, SnippetPack
 
 from genealogy_kg.config import load_sources
 from genealogy_kg.extractor import EDGE_KINDS, GedcomExtractor
+from genealogy_kg.lineage import FamilyTree, ascii_tree
 
 #: Relations followed by default during query/pack expansion. ``CITES`` is
 #: excluded so a hit on a person does not drag every census page in with it.
@@ -144,6 +145,20 @@ class GenealogyKG(KGModule):
         :return: Node dict, or ``None`` when absent.
         """
         return self.node(f"person:{xref}")
+
+    def tree(
+        self, xref: str, *, direction: str = "descendants", generations: int = 4
+    ) -> FamilyTree:
+        """Render an ASCII family tree rooted at a person.
+
+        :param xref: Individual xref without ``@``.
+        :param direction: ``"descendants"`` (default) or ``"ancestors"``.
+        :param generations: Maximum generations to walk.
+        :return: A :class:`~genealogy_kg.lineage.FamilyTree`.
+        """
+        return ascii_tree(
+            self.store, f"person:{xref}", direction=direction, generations=generations
+        )
 
 
 __all__ = ["GenealogyKG", "DEFAULT_GENEALOGY_RELS"]

@@ -112,6 +112,18 @@ def descendants(xref: str, generations: int = 4) -> str:
 
 
 @mcp.tool()
+def family_tree(xref: str, direction: str = "descendants", generations: int = 4) -> str:
+    """Render an ASCII family tree rooted at a person.
+
+    :param xref: Individual xref without ``@``, for example ``I1``.
+    :param direction: ``"descendants"`` (default) or ``"ancestors"``.
+    :param generations: Maximum generations to walk.
+    :return: The rendered tree as plain text.
+    """
+    return str(_get_kg().tree(xref, direction=direction, generations=generations))
+
+
+@mcp.tool()
 def graph_stats() -> str:
     """Return node and edge counts for the current store.
 

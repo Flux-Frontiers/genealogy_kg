@@ -37,6 +37,23 @@ def test_build_query_pack_status_analyze_round_trip(corpus_root: Path) -> None:
     assert "People: 12" in analyze.output
 
 
+def test_ancestors_and_descendants_print_ascii_trees(corpus_root: Path) -> None:
+    runner = CliRunner()
+    source = str(corpus_root / "family.ged")
+    build = runner.invoke(cli, ["build", "--repo", str(corpus_root), "--source", source])
+    assert build.exit_code == 0, build.output
+
+    desc = runner.invoke(cli, ["descendants", "I1", "--repo", str(corpus_root)])
+    assert desc.exit_code == 0, desc.output
+    assert "John Hartwell" in desc.output
+    assert "William Hartwell" in desc.output
+
+    anc = runner.invoke(cli, ["ancestors", "I12", "--repo", str(corpus_root)])
+    assert anc.exit_code == 0, anc.output
+    assert "Margaret Hartwell" in anc.output
+    assert "John Hartwell" in anc.output
+
+
 def test_build_without_source_or_config_fails_clearly(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["build", "--repo", str(tmp_path)])
     assert result.exit_code != 0

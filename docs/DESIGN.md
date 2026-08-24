@@ -1,7 +1,10 @@
 # GenealogyKG design plan
 
 Author: Eric G. Suchanek, PhD
-Status: Phase 0 and Phase 1 complete (2026-08-23). Phase 2 not started.
+Status: Phase 0, 1 and 2 complete (2026-08-23) -- build/query/pack, lineage
+walks, ASCII family trees, and KGRAG federation all work end to end. Phase 3
+(hygiene/analysis) not started. Phases 4 (2-D viz) and 5 (viz3d/holographic)
+are roadmapped below but not started.
 
 GenealogyKG turns a GEDCOM file into a KGModule: a SQLite graph of people,
 families, events, places and sources, a sqlite-vec index over prose summaries
@@ -19,12 +22,23 @@ GEDCOM dates onto the fleet's temporal contract.
   event and place nodes, expanded one hop through family links.
 - `genealogykg pack "Hartwell emigration"` returns the raw GEDCOM records
   behind each hit, with line numbers, ready for an LLM context window.
-- `genealogykg ancestors I7 --generations 3` and `descendants` walk the graph
-  without a semantic query.
+- `genealogykg ancestors I7 --generations 3` and `descendants I1` print an
+  ASCII family tree -- no semantic query, no plotting library, works over
+  SSH:
+
+  ```
+  John Hartwell (1820-1891) m. Mary Ashcombe
+  +-- William Hartwell (1848-1922) m. Anna Kessler
+  |   `-- Robert Hartwell (1876-1949) m. Louise Brandt
+  `-- Eliza Hartwell (b. 1851) m. Samuel Pryce
+  ```
 - `genealogykg-mcp` exposes the same operations to Claude Code and other MCP
-  clients.
+  clients, including `family_tree` for the ASCII rendering.
 - A federated `kgrag query --from 1840 --to 1900` includes genealogy hits,
-  because every dated node carries `occurred_start` / `occurred_end`.
+  because every dated node carries `occurred_start` / `occurred_end`, and
+  `kgrag` itself knows the kind (`KGKind.GENEALOGY`, registered 2026-08-23).
+- Later: `genealogykg viz I1 --output tree.html` (Phase 4) and
+  `genealogykg quilt I1` for a Looking Glass hologram (Phase 5).
 
 ## Decisions
 
@@ -145,24 +159,27 @@ present. The raw `DATE` string is always kept beside the derived keys.
 src/genealogy_kg/
   __init__.py       GenealogyKG, GedcomExtractor, __version__
   gedcom.py         thin reader over ged4py: records, line spans, name/place/date helpers
-  temporal.py       temporal_keys(): ged4py DateValue -> kg_utils.temporal
+  temporal.py       temporal_keys()/person_temporal_keys(): ged4py DateValue -> kg_utils.temporal
   extractor.py      GedcomExtractor(KGExtractor): the graph model above
-  module.py         GenealogyKG(KGModule): kind(), analyze(), rels defaults, lineage helpers
-  lineage.py        ancestors(), descendants(), kinship_path() over GraphStore
+  module.py         GenealogyKG(KGModule): kind(), analyze(), rels defaults, tree()
+  lineage.py        ancestors(), descendants(), kinship_path(), ascii_tree()/FamilyTree
   config.py         [tool.genealogykg] sources + .genealogykg/config.json
-  snapshots.py      GenealogySnapshotManager over kg_utils.snapshots
+  snapshots.py      GenealogySnapshotManager over kg_utils.snapshots (Phase 3)
   mcp_server.py     FastMCP: query_genealogy, pack_genealogy, get_person,
-                    ancestors, descendants, graph_stats, analyze_genealogy
+                    ancestors, descendants, family_tree, graph_stats, analyze_genealogy
   adapter.py        GenealogyKGAdapter for KGRAG (optional extra `adapter`)
+  viz.py            2-D family-tree rendering (Phase 4, not started)
+  scene.py          viz3d attractor/limb/leaf mapping for the holographic stack (Phase 5, not started)
   cli/
     group.py        root click group (`genealogykg`)
     options.py      shared --repo/--db/--vectors/--model/-k options
     cmd_build.py    build
     cmd_query.py    query, pack
-    cmd_lineage.py  ancestors, descendants
+    cmd_lineage.py  ancestors, descendants (both print an ASCII tree)
     cmd_analyze.py  analyze
     cmd_status.py   status
-    cmd_snapshot.py snapshot save|list|show|diff
+    cmd_snapshot.py snapshot save|list|show|diff (Phase 3)
+    cmd_viz.py      viz, quilt (Phase 4/5, not started)
 ```
 
 Storage: `.genealogykg/graph.sqlite`, `.genealogykg/vectors.sqlite`,
@@ -201,18 +218,76 @@ with their public signatures and raise `NotImplementedError`.
    and with the node counts [CORPORA.md](CORPORA.md) lists. These run as
    `integration` tests, skipped when `corpora/` is absent.
 
-### Phase 2: lineage and federation (0.2.0)
+### Phase 2: lineage and federation (0.2.0) -- done 2026-08-23
 
-1. `lineage.py`: `ancestors`, `descendants` (bounded by generations),
-   `kinship_path` (shortest path over `PARENT_OF`/`MARRIED_TO`, returned as
-   a readable chain).
-2. `cli/cmd_lineage.py` and the MCP tools.
-3. `adapter.py` in this repo; in kg-rag: `KGKind.GENEALOGY`, the
-   `.genealogykg` directory mapping in `cmd_registry.py`, a lazy
-   `genealogy_adapter.py`, a colour and glyph in `app.py`. File that as a
-   kgrag_priv sweep item, not a public TODO.
-4. `tests/test_temporal_contract.py` modelled on ftree_kg's: a federated
-   time-scoped query must return the person nodes and nothing undated.
+1. `lineage.py`: `ancestors`/`descendants` (bounded by generations, nearest
+   first), `kinship_path` (shortest `PARENT_OF`/`MARRIED_TO` chain, BFS over
+   both directions since `MARRIED_TO` is stored husband -> wife only but is
+   conceptually symmetric).
+2. **`ascii_tree()` / `FamilyTree`**, also in `lineage.py`. A recursive
+   walk (children via `edges_from`, parents via `callers_of`, depth-bounded,
+   cycle-safe on the current path) renders pure-ASCII connectors
+   (`+--`/`` `-- ``/`|`, never Unicode box-drawing) with spouses and life
+   spans inline:
+
+   ```
+   John Hartwell (1820-1891) m. Mary Ashcombe
+   +-- William Hartwell (1848-1922) m. Anna Kessler
+   |   +-- Robert Hartwell (1876-1949) m. Louise Brandt
+   |   |   `-- Margaret Hartwell (1903-1990)
+   |   `-- Clara Hartwell (b. 1879)
+   +-- Eliza Hartwell (b. 1851) m. Samuel Pryce
+   |   `-- Edith Pryce (b. 1874)
+   `-- Thomas Hartwell (1855-1857)
+   ```
+
+   `FamilyTree.__repr__`/`__str__` both return the rendered text, so
+   `kg.tree("I1")` prints the tree directly at a REPL prompt or in a
+   notebook -- no plotting library, no build step. This is the zero-setup
+   tier every heavier visualization in Phase 4/5 sits on top of: it works
+   the moment `build` has run, on a laptop or over SSH, and it is what
+   `genealogykg ancestors`/`descendants` print and what the `family_tree`
+   MCP tool returns.
+3. `GenealogyKG.tree()`; `cli/cmd_lineage.py`'s `ancestors`/`descendants`
+   commands print it; MCP gained `family_tree` alongside the existing
+   `ancestors`/`descendants` (which return the flat, generation-tagged JSON
+   list `lineage.ancestors`/`descendants` produce, for callers that want
+   data rather than art).
+4. `adapter.py` in this repo, and in kg-rag: `KGKind.GENEALOGY`,
+   `genealogy_adapter.py`, the `.genealogykg` directory mapping in
+   `cmd_registry.py`, a colour and glyph in `app.py`, "genealogy" added to
+   the three MCP tool kind-filter enums. Landed as `kgrag` commit
+   `3dcb9ab`, not a public TODO.
+
+   **Finding surfaced while writing `genealogy_adapter.py`, not fixed
+   there:** `kg_rag.adapters.ftree_adapter.FTreeKGAdapter` reads a node's
+   score from a top-level `score` key and its id from `node_id`, and reads
+   `SnippetPack.snippets`. Verified live against `kg_utils.pipeline.
+   KGModule.query()`/`.pack()` (the base class every sibling KG, including
+   this one, actually subclasses): the score lives at
+   `node["relevance"]["score"]`, the id at `node["id"]`, and the packed
+   text at `node["snippet"]` -- `SnippetPack.snippets` is always `[]`. That
+   means `FTreeKGAdapter.query()` reports every hit's `node_id` as `""`,
+   `min_score`/`semantic_floor` filtering there is a permanent no-op, and
+   `.pack()` always returns `[]`. `diary_adapter.py` and `agent_adapter.py`
+   read `node_id` the same stale way and are worth checking too, though
+   that wasn't verified here. `genealogy_adapter.py` (both copies -- this
+   repo's and kg-rag's) was written against the confirmed-live shape
+   instead and pins it with tests. Filed in `kgrag_priv/FLEET_SWEEP_PLAN.md`
+   as a dedicated fix, not attempted here -- out of scope for this change,
+   and touching a live adapter three other kinds share deserves its own
+   pass, not a drive-by edit.
+5. Deliberately not built this phase: a dedicated federated
+   time-scoped-query test (ftree_kg's `test_temporal_contract.py` pattern).
+   That needs `kg-rag` installed, which is the `adapter` extra, not the
+   `dev` group -- `ftree_kg/adapter.py` has the identical gap for the
+   identical reason (confirmed: no test file references it, and its own
+   `pyproject.toml` comment says nothing in the fleet imports it directly).
+   Matching that precedent rather than inventing a one-off `kg` group entry
+   for a single test. The adapter was smoke-tested by hand instead (a
+   scratch venv with both packages installed editable, a real build, and a
+   real query/pack/stats/analyze/snapshot round trip) -- confirmed working,
+   just not wired into CI.
 
 ### Phase 3: hygiene and analysis (0.3.0)
 
@@ -226,12 +301,58 @@ with their public signatures and raise `NotImplementedError`.
    per kind, people with no family links, places with no hierarchy.
 5. `snapshots.py` and `genealogykg install-hooks` for corpus repos.
 
-### Phase 4: the family tree, literally
+### Phase 4: viz -- 2-D family-tree diagrams (0.4.0)
+
+The fleet convention for a KG's optional 2-D visualization is a `viz` extra
+(`plotly`, `pyvis`, `streamlit` -- see `diary_kg`'s `pyproject.toml`), never
+hand-rolled per repo. This phase is that extra plus the domain glue that
+turns a `GenealogyKG` into the shapes those libraries draw:
+
+1. `viz.py`: `pyvis`/`plotly` network-graph rendering of the whole
+   `person`/`family`/`CHILD_IN`/`SPOUSE_IN`/`MARRIED_TO` graph -- the
+   ontological view. Nodes coloured by sex or by generation depth from a
+   chosen root; edge style distinguishes `PARENT_OF` from `MARRIED_TO`.
+2. A `plotly` **pedigree/descent chart** -- the semantic view, and the
+   direct visual upgrade path from `ascii_tree()`: same recursive walk
+   (`lineage._build_children`/`_build_parents`), rendered as boxes and
+   connectors instead of box-drawing characters, so the two stay in visual
+   agreement rather than drifting into two independent layouts.
+3. `cli/cmd_viz.py`: `genealogykg viz <xref> --output tree.html`.
+4. `KGAdapter.display()` override in both `adapter.py` copies, so a
+   genealogy KG participates in kg-rag's Streamlit visualizer instead of
+   falling back to `KGAdapter`'s placeholder card.
+5. `pip install "genealogy-kg[viz]"`; nothing in `viz.py` imported outside
+   the `cli/cmd_viz.py` and `adapter.display()` entry points, so a bare
+   install never pulls `plotly`/`pyvis`/`streamlit`.
+
+Not started.
+
+### Phase 5: viz3d -- the family tree, literally (0.5.0)
 
 Grow the graph with `kg_utils.viz3d.organic` and render a quilt with
 `quiltwright`: the root couple as trunk, each family a limb, each person a
-leaf placed by birth year along the limb. The domain glue is per-repo
-(VISUALIZATION_STACK.md); nothing below it is reimplemented. Not scheduled.
+leaf placed by birth year along the limb, leaf colour by generation, canopy
+density by branch fecundity (children per couple) -- attractors are real
+genealogical data, so the canopy's shape *is* the family's shape, per the
+visualization stack's own organic-growth premise. `scene.py` is the only
+new code; layers 1-2 (`kg_utils.viz3d.organic`, `quiltwright`) are the
+shared fleet stack and are never reimplemented here --
+`kgrag_priv/docs/VISUALIZATION_STACK.md` is the canonical reference, and
+`gutenberg_kg`'s `scene.py`/`cli/cmd_quilt.py` and `pycode_kg`'s
+repo-to-trunk mapping are the pattern to follow.
+
+1. `scene.py`: root couple -> trunk seed, each `family` node -> a limb
+   attractor, each `person` leaf placed along its parent limb by
+   `occurred_start` year (falls back to generation depth when undated).
+2. `cli/cmd_viz.py` gains `quilt`: `genealogykg quilt <xref> --preset
+   <name>` -> a Looking Glass light-field quilt via `render_quilt`.
+3. `pip install "genealogy-kg[viz3d]"` (PyVista-backed, heavy); declare
+   `"quiltwright>=0.4.0"` unmarked, per the fleet's current floor.
+
+Not started. No target version beyond "after Phase 4 ships and there is a
+`viz.py` layout worth lifting into 3-D" -- 3-D placement logic that has
+never been checked against a working 2-D layout first is the way to
+discover a coordinate-system bug at the most expensive possible point.
 
 ## Not in scope
 

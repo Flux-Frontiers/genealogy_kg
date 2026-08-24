@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Phase 2: `ancestors`/`descendants`/`kinship_path` lineage walks over
+  `GraphStore`, and `ascii_tree()`/`FamilyTree` -- a pure-ASCII
+  (`+--`/`` `-- ``/`|`, never Unicode box-drawing) family-tree renderer
+  whose `__repr__`/`__str__` print the tree directly. `genealogykg
+  ancestors`/`descendants` and the new `family_tree` MCP tool both use
+  it. `GenealogyKGAdapter` (this repo's `adapter` extra, and `kg-rag`'s
+  own `KGKind.GENEALOGY` registration) reads `node["relevance"]["score"]`
+  and `node["snippet"]`, the shape `kg_utils.pipeline.KGModule` actually
+  returns -- verified live, and pinned with tests, against a sibling
+  adapter that assumed the pre-refactor shape and silently degrades
+  every federated hit (see `kgrag` CHANGELOG.md 0.14.0-successor entry).
+  17 new tests (58 total).
 - Phase 1: `build`, `query`, `pack`, `analyze` and `status` work end to
   end. `GedcomExtractor` emits the full graph model from docs/DESIGN.md
   (person/family/event/place/source nodes; CHILD_IN/SPOUSE_IN/PARENT_OF/

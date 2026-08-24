@@ -14,9 +14,10 @@ temporal contract.
 
 *Author: Eric G. Suchanek, PhD -- Flux-Frontiers, Liberty TWP, OH*
 
-> **Status: pre-alpha.** `build`, `query`, `pack`, `analyze` and `status`
-> work end to end (Phase 1). Lineage walks (`ancestors`/`descendants`) and
-> the KGRAG adapter are Phase 2. See [docs/DESIGN.md](docs/DESIGN.md).
+> **Status: pre-alpha.** `build`, `query`, `pack`, `analyze`, `status`,
+> ASCII lineage trees (`ancestors`/`descendants`) and KGRAG federation all
+> work end to end (Phase 1-2). 2-D and 3-D visualization are Phase 4-5.
+> See [docs/DESIGN.md](docs/DESIGN.md).
 
 ## Overview
 
