@@ -1,6 +1,6 @@
 {
   "format": "1.0",
-  "last_update": "2026-08-24T03:33:09.221384+00:00",
+  "last_update": "2026-08-24T17:58:49.670800+00:00",
   "snapshots": [
     {
       "key": "1ced3e7abdcaf868b5236f808113e82b8c14bed3",
@@ -38,6 +38,49 @@
       "deltas": {
         "vs_previous": null,
         "vs_baseline": null
+      }
+    },
+    {
+      "key": "85960dd96c5ed3a00e986a2b0bcd35e534eb12b3",
+      "branch": "main",
+      "timestamp": "2026-08-24T17:58:49.669951+00:00",
+      "version": "0.21.1",
+      "file": "85960dd96c5ed3a00e986a2b0bcd35e534eb12b3.json",
+      "metrics": {
+        "db_path": "/Users/egs/repos/genealogy_kg/.dockg/graph.sqlite",
+        "total_nodes": 1356,
+        "total_edges": 9308,
+        "node_counts": {
+          "chunk": 197,
+          "document": 10,
+          "entity": 489,
+          "keyword": 409,
+          "section": 78,
+          "topic": 173
+        },
+        "edge_counts": {
+          "CONTAINS": 275,
+          "CO_OCCURS_WITH": 6716,
+          "HAS_KEYWORD": 788,
+          "HAS_TOPIC": 201,
+          "MENTIONS_ENTITY": 1021,
+          "NEXT": 117,
+          "REFERENCES": 4,
+          "SIMILAR_TO": 186
+        },
+        "meaningful_nodes": 1346,
+        "coverage_score": 0.988155668358714,
+        "issues_count": 0,
+        "complexity_median": 18.0
+      },
+      "deltas": {
+        "vs_previous": null,
+        "vs_baseline": {
+          "nodes": 278,
+          "edges": 1523,
+          "coverage_delta": -0.0007332205301748829,
+          "issues_delta": 0
+        }
       }
     }
   ]

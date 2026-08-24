@@ -1,0 +1,138 @@
+{
+  "key": "85960dd96c5ed3a00e986a2b0bcd35e534eb12b3",
+  "branch": "main",
+  "timestamp": "2026-08-24T17:58:45.063740+00:00",
+  "version": "0.21.4",
+  "metrics": {
+    "db_path": ".pycodekg/graph.sqlite",
+    "total_nodes": 2307,
+    "meaningful_nodes": 182,
+    "total_edges": 2030,
+    "node_counts": {
+      "class": 10,
+      "function": 88,
+      "method": 56,
+      "module": 28,
+      "symbol": 2125
+    },
+    "edge_counts": {
+      "ATTR_ACCESS": 532,
+      "CALLS": 785,
+      "CONTAINS": 154,
+      "IMPORTS": 242,
+      "INHERITS": 5,
+      "RESOLVES_TO": 312
+    },
+    "module_count": 28,
+    "class_count": 10,
+    "function_count": 88,
+    "method_count": 56,
+    "docstring_coverage": 0.764,
+    "snapshot_count": 1,
+    "critical_issues": 2,
+    "complexity_median": 4,
+    "module_node_counts": {
+      "src/genealogy_kg/__init__.py": 3,
+      "src/genealogy_kg/adapter.py": 110,
+      "src/genealogy_kg/analysis.py": 76,
+      "src/genealogy_kg/cli/__init__.py": 2,
+      "src/genealogy_kg/cli/__main__.py": 1,
+      "src/genealogy_kg/cli/cmd_analyze.py": 12,
+      "src/genealogy_kg/cli/cmd_build.py": 26,
+      "src/genealogy_kg/cli/cmd_hooks.py": 21,
+      "src/genealogy_kg/cli/cmd_lineage.py": 25,
+      "src/genealogy_kg/cli/cmd_query.py": 29,
+      "src/genealogy_kg/cli/cmd_snapshot.py": 106,
+      "src/genealogy_kg/cli/cmd_status.py": 20,
+      "src/genealogy_kg/cli/cmd_viz.py": 119,
+      "src/genealogy_kg/cli/group.py": 2,
+      "src/genealogy_kg/cli/main.py": 1,
+      "src/genealogy_kg/cli/options.py": 12,
+      "src/genealogy_kg/config.py": 46,
+      "src/genealogy_kg/extractor.py": 304,
+      "src/genealogy_kg/gedcom.py": 83,
+      "src/genealogy_kg/lineage.py": 151,
+      "src/genealogy_kg/mcp_server.py": 60,
+      "src/genealogy_kg/module.py": 80,
+      "src/genealogy_kg/scene.py": 259,
+      "src/genealogy_kg/snapshots.py": 33,
+      "src/genealogy_kg/temporal.py": 56,
+      "src/genealogy_kg/theme.py": 29,
+      "src/genealogy_kg/viz.py": 125,
+      "src/genealogy_kg/viz3d.py": 86
+    }
+  },
+  "hotspots": [
+    {
+      "name": "fn:src/genealogy_kg/mcp_server.py:_get_kg",
+      "callers": 8,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter._load",
+      "callers": 6,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/extractor.py:_xref",
+      "callers": 6,
+      "callees": 1,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.stats",
+      "callers": 6,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/extractor.py:GedcomExtractor.is_living",
+      "callers": 5,
+      "callees": 5,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.__init__",
+      "callers": 5,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/extractor.py:GedcomExtractor.__init__",
+      "callers": 5,
+      "callees": 4,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/cli/cmd_snapshot.py:_snapshots_dir",
+      "callers": 4,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "fn:src/genealogy_kg/temporal.py:temporal_keys",
+      "callers": 4,
+      "callees": 2,
+      "risk_level": "low"
+    },
+    {
+      "name": "m:src/genealogy_kg/adapter.py:GenealogyKGAdapter.pack",
+      "callers": 4,
+      "callees": 8,
+      "risk_level": "low"
+    }
+  ],
+  "issues": [
+    "[WARN] Moderate docstring coverage (76.4%) \u2014 semantic retrieval quality is degraded for undocumented nodes; BM25 is as effective as embeddings without docstrings",
+    "[WARN] 1 orphaned functions found (`_lifespan_row`) -- consider archiving or documenting"
+  ],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 837,
+    "edges": 648,
+    "coverage_delta": 0.009000000000000008,
+    "critical_issues_delta": 1
+  }
+}

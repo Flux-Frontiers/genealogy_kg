@@ -1,0 +1,123 @@
+{
+  "key": "85960dd96c5ed3a00e986a2b0bcd35e534eb12b3",
+  "branch": "main",
+  "timestamp": "2026-08-24T17:58:49.669951+00:00",
+  "version": "0.21.1",
+  "metrics": {
+    "db_path": "/Users/egs/repos/genealogy_kg/.dockg/graph.sqlite",
+    "total_nodes": 1356,
+    "total_edges": 9308,
+    "node_counts": {
+      "chunk": 197,
+      "document": 10,
+      "entity": 489,
+      "keyword": 409,
+      "section": 78,
+      "topic": 173
+    },
+    "edge_counts": {
+      "CONTAINS": 275,
+      "CO_OCCURS_WITH": 6716,
+      "HAS_KEYWORD": 788,
+      "HAS_TOPIC": 201,
+      "MENTIONS_ENTITY": 1021,
+      "NEXT": 117,
+      "REFERENCES": 4,
+      "SIMILAR_TO": 186
+    },
+    "meaningful_nodes": 1346,
+    "coverage_score": 0.988155668358714,
+    "issues_count": 0,
+    "complexity_median": 18.0
+  },
+  "hotspots": [
+    {
+      "id": "chunk:corpora/torture/README.txt:0004",
+      "file_path": "corpora/torture/README.txt",
+      "label": "chunk:0005",
+      "references": 0,
+      "semantic_links": 22,
+      "total_links": 23
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0002",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "Gedcom Samples",
+      "references": 0,
+      "semantic_links": 20,
+      "total_links": 21
+    },
+    {
+      "id": "chunk:corpora/torture/README.txt:0000",
+      "file_path": "corpora/torture/README.txt",
+      "label": "chunk:0001",
+      "references": 0,
+      "semantic_links": 19,
+      "total_links": 20
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0005",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "basic",
+      "references": 0,
+      "semantic_links": 19,
+      "total_links": 19
+    },
+    {
+      "id": "chunk:CHANGELOG.md:0011",
+      "file_path": "CHANGELOG.md",
+      "label": "Added",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 19
+    },
+    {
+      "id": "chunk:docs/DESIGN.md:0000",
+      "file_path": "docs/DESIGN.md",
+      "label": "GenealogyKG design plan",
+      "references": 0,
+      "semantic_links": 18,
+      "total_links": 19
+    },
+    {
+      "id": "chunk:corpora/torture/README.txt:0007",
+      "file_path": "corpora/torture/README.txt",
+      "label": "chunk:0008",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:docs/DESIGN.md:0050",
+      "file_path": "docs/DESIGN.md",
+      "label": "Phase 5: viz3d -- the family tree, literally (0.5.0) -- done 2026-08-24",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 18
+    },
+    {
+      "id": "chunk:corpora/gedcom-samples/README.md:0003",
+      "file_path": "corpora/gedcom-samples/README.md",
+      "label": "Gedcom Samples",
+      "references": 0,
+      "semantic_links": 17,
+      "total_links": 17
+    },
+    {
+      "id": "chunk:CHANGELOG.md:0016",
+      "file_path": "CHANGELOG.md",
+      "label": "Added",
+      "references": 0,
+      "semantic_links": 16,
+      "total_links": 17
+    }
+  ],
+  "issues": [],
+  "vs_previous": null,
+  "vs_baseline": {
+    "nodes": 278,
+    "edges": 1523,
+    "coverage_delta": -0.0007332205301748829,
+    "issues_delta": 0
+  }
+}
