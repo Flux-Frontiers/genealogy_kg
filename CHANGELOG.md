@@ -9,6 +9,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- `gedcom.py` now trims trailing whitespace-only bytes from the copy handed
+  to ged4py, whose line grammar rejects the blank line after `0 TRLR` that
+  several exporters emit. Only trailing bytes are trimmed, so no real
+  record's byte offset moves and `GedcomFile.spans()` -- which reads line
+  numbers from the untouched file on disk -- is unaffected. This is what
+  lets the already-committed
+  `corpora/entries/fictional-characters/lord-of-the-rings-family-tree/` entry
+  parse rather than raise.
+- `temporal.iso_date()` returned a malformed date string for a day the
+  Gregorian calendar does not have (30 February, from a mistyped source
+  record) because nothing validated the final year/month/day triple. It now
+  returns `None`, matching how it already handled impossible Julian dates.
 - `scene.py`'s schematic renderer had three compounding geometry bugs, all
   visible on the Bronte/Kennedy/Royal demos: the root/spouse generation sat
   flush with `z=0` (reads as buried, not planted -- a trunk's founding
@@ -35,6 +47,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- `GeorgeWashington+Family+Small.ged` is dropped from `corpora/entries/`
+  rather than fixed. It was recorded as having a truncated header; it is in
+  fact, byte for byte, a saved Google Groups HTML error page, and upstream
+  `D-Jeffrey/gedcom-samples` carries the identical broken content, so
+  re-fetching from the documented source cannot repair it. The corpus is
+  therefore 97 trees, not 98.
+- `kgmodule-utils` was declared at `>=0.18.0` in the core dependency and the
+  `viz` extra but `>=0.18.1` in `viz3d`. Harmless at resolve time, since the
+  resolver takes the maximum, and still the defect FLEET_STANDARDS.md rule 4
+  names: a reader cannot tell which number is the real requirement. All
+  three now read `>=0.18.1`, and `pycode-kg` moves to `>=0.24.1`.
+
 - The `viz` extra pulls `kgmodule-utils[viz]` rather than hand-listing
   `pyvis`. The renderer is `kg_utils.viz.build_graph_html`, so the SDK owns
   that dependency; hand-listing a render stack while never depending on the
@@ -58,6 +82,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   under `.pycodekg/snapshots/` and `.dockg/snapshots/`.
 
 ### Added
+
+- `genkg status` now reports on the whole corpus rather than a single store.
+  `collect_corpus_status()` walks `corpora/entries/`, reading node and edge
+  counts straight from each entry's own `.genealogykg/graph.sqlite` (so the
+  command works with no kg-rag installed) and folding in registration counts
+  from the KGRAG registry when the `adapter` extra is present. Rendered as a
+  per-genre table, with `--json` for machine use, `--root` to point at
+  another corpus and `--registry` to override the registry path. With no
+  `corpora/entries/` tree present it falls back to the previous single-store
+  report.
 
 - `genkg quilt`/`genkg viz3d`'s `XREF` argument is now optional: if omitted,
   it falls back to `[tool.genealogykg] default_xref` in `pyproject.toml`

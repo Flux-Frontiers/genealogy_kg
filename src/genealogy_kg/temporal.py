@@ -20,6 +20,7 @@ License: Elastic 2.0
 
 from __future__ import annotations
 
+from datetime import date
 from typing import Any
 
 from convertdate import julian
@@ -66,7 +67,10 @@ def iso_date(calendar_date: Any | None) -> str | None:
     date with a day is converted to the proleptic Gregorian calendar; a
     Julian year or year-month is kept as written, the offset between the
     calendars being smaller than that precision. Hebrew and French
-    Republican calendars, and BC years, return ``None``.
+    Republican calendars, and BC years, return ``None``. A day/month/year
+    combination the Gregorian calendar does not have (a mistyped source
+    record, e.g. 30 February) also returns ``None`` rather than raising --
+    ``parse_temporal`` has no such validation of its own.
 
     :param calendar_date: A ged4py ``CalendarDate``, or ``None``.
     :return: ISO-8601 string at the precision the source supports, or ``None``.
@@ -90,6 +94,10 @@ def iso_date(calendar_date: Any | None) -> str | None:
             year, month, day = julian.to_gregorian(year, month, day)
         except ValueError:  # a day the Julian calendar does not have
             return None
+    try:
+        date(year, month, day)
+    except ValueError:  # a day the Gregorian calendar does not have
+        return None
     return f"{year:04d}-{month:02d}-{day:02d}"
 
 
