@@ -70,9 +70,13 @@ dependencies = [
     # continuation and the full DATE grammar (ABT, BEF, AFT, BET ... AND,
     # FROM ... TO), none of which is worth reimplementing.
     "ged4py>=0.5.2",
-    # 0.18.0 carries kg_utils.temporal, the fleet's shared time contract that
-    # birth/death/marriage dates are derived into.
-    "kgmodule-utils[semantic,sqlite-vec]>=0.18.0",
+    # kg_utils.temporal -- the fleet's shared time contract that
+    # birth/death/marriage dates are derived into -- landed in 0.18.0. The
+    # floor sits at 0.18.1 so that every kgmodule-utils declaration in this
+    # file carries the same number, per kgrag_priv/docs/FLEET_STANDARDS.md
+    # ("one package, one floor per repo"): a reader should not have to guess
+    # which of several numbers is the real requirement.
+    "kgmodule-utils[semantic,sqlite-vec]>=0.18.1",
     # Capped: mcp 2.0 split FastMCP into its own package, and mcp_server.py
     # imports it from `mcp` at module scope. Lift only alongside that port.
     "mcp>=1.0.0,<2",
@@ -98,7 +102,7 @@ adapter = [
 # by hand-listing the render stack and never depending on the SDK extra where
 # the code actually lives.
 viz = [
-    "kgmodule-utils[viz]>=0.18.0",
+    "kgmodule-utils[viz]>=0.18.1",
     "plotly>=5.14.0",
     "streamlit>=1.35.0",
 ]
@@ -115,7 +119,7 @@ viz3d = [
     "param>=2.0.0",
     "PyQt5>=5.15.0",
     "pyvistaqt>=0.11.0",
-    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.18.0",
+    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.18.1",
     "quiltwright>=0.8.0",
 ]
 
@@ -150,7 +154,7 @@ optional = true
 
 [tool.poetry.group.kg.dependencies]
 doc-kg = ">=0.22.0"
-pycode-kg = ">=0.23.1"
+pycode-kg = ">=0.24.1"
 
 [project.urls]
 Homepage   = "https://github.com/Flux-Frontiers/genealogy_kg"

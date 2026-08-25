@@ -135,10 +135,19 @@ layout instead of organic growth. `XREF` can be omitted if
 ## Analysis and status
 
 ```bash
-genkg status              # is the store built? which sources? node/edge counts
-genkg analyze              # generation depth, surnames, date coverage, orphans
+genkg status               # per-genre entries/built/registered/node/edge counts for corpora/entries/
+genkg status --json        # same, machine-readable
+genkg analyze               # generation depth, surnames, date coverage, orphans
 genkg analyze --output report.md
 ```
+
+`status` reads `<repo>/corpora/entries/` (override with `--root`) and shows a
+table like `genkg corpus survey`, but rolled up per genre with node/edge
+totals read straight from each entry's own `.genealogykg/graph.sqlite`, plus
+registration counts from the KGRAG registry when the `adapter` extra is
+installed. If no `corpora/entries/` tree is present -- e.g. a plain
+`--repo`/`--source` dev store -- it falls back to reporting that single
+store's build state, sources and counts instead.
 
 ## Snapshots
 

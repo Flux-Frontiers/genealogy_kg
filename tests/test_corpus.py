@@ -17,6 +17,7 @@ from genealogy_kg.corpus import (
     EntryMeta,
     IngestOptions,
     build_entry,
+    collect_corpus_status,
     run_ingest,
     scan_corpus,
     survey,
@@ -162,6 +163,45 @@ def test_survey_genre_filter(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# collect_corpus_status
+# ---------------------------------------------------------------------------
+
+
+def test_collect_corpus_status_no_registry(tmp_path: Path) -> None:
+    _make_corpus(tmp_path, {"samples": ["bach", "basic"], "royalty": ["tudor"]})
+    build_entry(scan_corpus(tmp_path)["samples"][0])  # builds "bach" only
+
+    result = collect_corpus_status(tmp_path, registry=tmp_path / "no-such-registry.sqlite")
+
+    assert result["registry_available"] is False
+    by_genre = {g["genre"]: g for g in result["genres"]}
+    assert by_genre["samples"]["entries"] == 2
+    assert by_genre["samples"]["built"] == 1
+    assert by_genre["samples"]["registered"] is None
+    assert by_genre["samples"]["people"] == 12
+    assert by_genre["samples"]["families"] == 4
+    assert by_genre["samples"]["nodes"] == 60
+    assert by_genre["samples"]["edges"] == 100
+    assert by_genre["royalty"]["built"] == 0
+    assert result["totals"] == {
+        "entries": 3,
+        "built": 1,
+        "registered": None,
+        "people": 12,
+        "families": 4,
+        "nodes": 60,
+        "edges": 100,
+    }
+
+
+def test_collect_corpus_status_empty_root(tmp_path: Path) -> None:
+    result = collect_corpus_status(tmp_path / "does-not-exist")
+
+    assert result["genres"] == []
+    assert result["totals"]["entries"] == 0
+
+
+# ---------------------------------------------------------------------------
 # run_ingest -- build only (no registry)
 # ---------------------------------------------------------------------------
 
@@ -225,6 +265,19 @@ def test_run_ingest_registers_and_is_idempotent(tmp_path: Path) -> None:
         all_corpus = corp_reg.get("genealogy-all")
         assert all_corpus is not None
         assert all_corpus.size == 1
+
+
+def test_collect_corpus_status_with_registry(tmp_path: Path) -> None:
+    _make_corpus(tmp_path, {"samples": ["bach", "basic"]})
+    registry_path = tmp_path / "registry.sqlite"
+    run_ingest(tmp_path, None, IngestOptions(), registry=registry_path)
+
+    result = collect_corpus_status(tmp_path, registry=registry_path)
+
+    assert result["registry_available"] is True
+    by_genre = {g["genre"]: g for g in result["genres"]}
+    assert by_genre["samples"]["registered"] == 2
+    assert result["totals"]["registered"] == 2
 
 
 def test_run_ingest_dry_run_registers_nothing(tmp_path: Path) -> None:

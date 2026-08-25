@@ -15,10 +15,11 @@ License: Elastic 2.0
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+import sqlite3
+from dataclasses import asdict, dataclass
 from datetime import date
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from genealogy_kg.module import GenealogyKG
 
@@ -74,6 +75,141 @@ class EntryResult:
     meta: EntryMeta
     status: str
     registered: bool = False
+
+
+@dataclass
+class GenreStatus:
+    """Aggregate build/registration/count status for one genre.
+
+    :param genre: Genre directory name.
+    :param entries: Total entries under this genre.
+    :param built: Entries with a local ``.genealogykg/`` store.
+    :param registered: Entries registered under this genre's corpus in the
+        KGRAG registry, or ``None`` if the registry could not be checked.
+    :param people: Total ``person`` node count across the genre's built stores.
+    :param families: Total ``family`` node count across the genre's built stores.
+    :param nodes: Total node count (every kind) across the genre's built stores.
+    :param edges: Total edge count across the genre's built stores.
+    """
+
+    genre: str
+    entries: int
+    built: int
+    registered: int | None
+    people: int
+    families: int
+    nodes: int
+    edges: int
+
+
+_EMPTY_ENTRY_COUNTS: dict[str, int] = {"people": 0, "families": 0, "nodes": 0, "edges": 0}
+
+
+def _entry_counts(path: Path) -> dict[str, int]:
+    """Return people/family/node/edge counts from a built entry's ``graph.sqlite``.
+
+    :param path: Path to a ``graph.sqlite`` file.
+    :return: ``{"people", "families", "nodes", "edges"}``, all zero if the
+        store is missing or unreadable.
+    """
+    if not path.exists():
+        return dict(_EMPTY_ENTRY_COUNTS)
+    try:
+        with sqlite3.connect(str(path)) as con:
+            kind_counts = dict(con.execute("SELECT kind, COUNT(*) FROM nodes GROUP BY kind"))
+            edges = con.execute("SELECT COUNT(*) FROM edges").fetchone()[0]
+        return {
+            "people": kind_counts.get("person", 0),
+            "families": kind_counts.get("family", 0),
+            "nodes": sum(kind_counts.values()),
+            "edges": edges,
+        }
+    except sqlite3.Error:
+        return dict(_EMPTY_ENTRY_COUNTS)
+
+
+def _registered_counts(genres: list[str], registry: str | Path | None) -> dict[str, int] | None:
+    """Return ``{genre: registered_count}`` from the KGRAG registry.
+
+    :param genres: Genre names to look up (each mapped to its
+        ``genealogy-<genre>`` corpus).
+    :param registry: Override path to the KGRAG registry database, or
+        ``None`` for the default location.
+    :return: Counts per genre, or ``None`` if kg-rag isn't installed or the
+        registry can't be opened.
+    """
+    try:
+        from kg_rag.corpus_registry import CorpusRegistry
+        from kg_rag.registry import default_registry_path
+    except ImportError:
+        return None
+
+    registry_path = Path(registry).resolve() if registry else default_registry_path()
+    if not registry_path.exists():
+        return None
+    try:
+        with CorpusRegistry(db_path=registry_path) as corp_reg:
+            counts = {}
+            for genre in genres:
+                entry = corp_reg.get(f"genealogy-{genre}")
+                counts[genre] = len(entry.kg_ids) if entry else 0
+            return counts
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def collect_corpus_status(corpus_root: Path, registry: str | Path | None = None) -> dict[str, Any]:
+    """Return a live, per-genre status summary for ``corpora/entries/``.
+
+    Node/edge counts are read directly from each entry's own
+    ``.genealogykg/graph.sqlite``, so this works without kg-rag installed;
+    registration counts come from the KGRAG registry when available.
+
+    :param corpus_root: Root of the per-entry corpus tree.
+    :param registry: Override path to the KGRAG registry database.
+    :return: Dict with ``genres`` (per-genre stat dicts), ``totals``, and
+        ``registry_available``.
+    """
+    by_genre = scan_corpus(corpus_root)
+    registered = _registered_counts(sorted(by_genre), registry)
+
+    genre_stats: list[GenreStatus] = []
+    for genre, entries in sorted(by_genre.items()):
+        built = people = families = nodes = edges = 0
+        for meta in entries:
+            if meta.has_kg:
+                built += 1
+                counts = _entry_counts(meta.store_dir / "graph.sqlite")
+                people += counts["people"]
+                families += counts["families"]
+                nodes += counts["nodes"]
+                edges += counts["edges"]
+        genre_stats.append(
+            GenreStatus(
+                genre=genre,
+                entries=len(entries),
+                built=built,
+                registered=(registered.get(genre) if registered is not None else None),
+                people=people,
+                families=families,
+                nodes=nodes,
+                edges=edges,
+            )
+        )
+
+    return {
+        "genres": [asdict(g) for g in genre_stats],
+        "totals": {
+            "entries": sum(g.entries for g in genre_stats),
+            "built": sum(g.built for g in genre_stats),
+            "registered": sum(registered.values()) if registered is not None else None,
+            "people": sum(g.people for g in genre_stats),
+            "families": sum(g.families for g in genre_stats),
+            "nodes": sum(g.nodes for g in genre_stats),
+            "edges": sum(g.edges for g in genre_stats),
+        },
+        "registry_available": registered is not None,
+    }
 
 
 @dataclass

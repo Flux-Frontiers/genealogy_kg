@@ -5,7 +5,7 @@
 [![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/Flux-Frontiers/genealogy_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/genealogy_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/genealogy_kg/actions/workflows/ci.yml)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
-[![Corpus](https://img.shields.io/badge/corpus-98%20trees-orange.svg)](corpora/entries/NOTICE.md)
+[![Corpus](https://img.shields.io/badge/corpus-97%20trees-orange.svg)](corpora/entries/NOTICE.md)
 [![People](https://img.shields.io/badge/people-13.8k-green.svg)](corpora/entries/NOTICE.md)
 [![Families](https://img.shields.io/badge/families-6.1k-green.svg)](corpora/entries/NOTICE.md)
 
@@ -25,7 +25,7 @@ living-person privacy model, with real examples.
 > ASCII lineage trees (`ancestors`/`descendants`), KGRAG federation, the
 > place hierarchy, the living-person filter, snapshots, the 2-D `viz` charts
 > and the 3-D `quilt`/`viz3d` renderer all work end to end (Phase 1-5). Since
-> then: a curated, committed corpus (`corpora/entries/`, 98 trees across 10
+> then: a curated, committed corpus (`corpora/entries/`, 97 trees across 10
 > genres) with `genkg corpus survey`/`ingest` to build and register it;
 > bounded, normalized CLI and MCP inputs; deterministic resource cleanup and
 > an MCP shutdown hook; a full MCP behavioral test suite and an enforced
@@ -81,7 +81,7 @@ genkg snapshot list
 # MCP server for Claude Code and other MCP clients
 genkg-mcp --repo .
 
-# No GEDCOM of your own? Build one of the 98 curated trees shipped in this
+# No GEDCOM of your own? Build one of the 97 curated trees shipped in this
 # repo -- see "The curated corpus" below.
 genkg corpus ingest --genre samples --no-register
 genkg descendants I0001 --repo corpora/entries/samples/bronte   # the Brontë family
@@ -163,7 +163,7 @@ carry that commit's tree hash.
 
 ### The curated corpus
 
-`corpora/entries/<genre>/<slug>/*.ged` is a committed, curated set of 98
+`corpora/entries/<genre>/<slug>/*.ged` is a committed, curated set of 97
 public GEDCOM trees across 10 genres (royalty, US presidents, corporations,
 fictional characters, and more) -- unlike the benchmark corpora below,
 these ship *in the repo* and are safe to build against directly, since

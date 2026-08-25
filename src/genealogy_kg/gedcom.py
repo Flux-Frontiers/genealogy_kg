@@ -13,6 +13,7 @@ License: Elastic 2.0
 from __future__ import annotations
 
 import bisect
+import io
 import re
 from collections.abc import Iterator
 from dataclasses import dataclass
@@ -49,6 +50,22 @@ def place_slug(place: str) -> str:
     """
     slug = _SLUG_RE.sub("-", place.strip().lower()).strip("-")
     return slug or "unknown-place"
+
+
+def _trim_trailing_blank_lines(data: bytes) -> bytes:
+    """Strip whitespace-only bytes from the end of a GEDCOM file's content.
+
+    A blank line after ``0 TRLR`` is a common, harmless artifact of some
+    exporters, but ged4py's line grammar rejects it as invalid syntax.
+    Trimming only the trailing whitespace (never interior bytes) leaves
+    every real record's byte offset unchanged, so this is safe to do on the
+    copy handed to ``GedcomReader`` without touching :meth:`GedcomFile.spans`,
+    which always computes line numbers from the untouched file on disk.
+
+    :param data: Raw file bytes.
+    :return: ``data`` with trailing blank/whitespace-only lines removed.
+    """
+    return data.rstrip(b" \t\r\n") or data
 
 
 def _line_starts(data: bytes) -> list[int]:
@@ -88,12 +105,13 @@ class GedcomFile:
         self._line_starts: list[int] | None = None
 
     def __enter__(self) -> GedcomFile:
-        # Open the file ourselves rather than handing GedcomReader a path
-        # string: GedcomReader.__exit__ closes whatever file it owns, but its
-        # own type stub declares exc_type as non-optional `type` even though
-        # a normal (non-exceptional) exit always passes None. Owning the file
-        # handle here sidesteps that upstream mismatch instead of fighting it.
-        self._fh = open(self.path, "rb")
+        # Hand GedcomReader an in-memory copy with trailing blank lines
+        # trimmed (see _trim_trailing_blank_lines) rather than the raw file
+        # handle: this also sidesteps GedcomReader.__exit__'s own type stub,
+        # which declares exc_type as non-optional `type` even though a
+        # normal (non-exceptional) exit always passes None -- owning the
+        # handle ourselves avoids that upstream mismatch either way.
+        self._fh = io.BytesIO(_trim_trailing_blank_lines(self.path.read_bytes()))
         self._reader = GedcomReader(self._fh)
         return self
 

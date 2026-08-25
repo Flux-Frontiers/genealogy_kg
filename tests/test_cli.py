@@ -57,6 +57,22 @@ def test_ancestors_and_descendants_print_ascii_trees(corpus_root: Path) -> None:
     assert "John Hartwell" in anc.output
 
 
+def test_status_defaults_to_corpus_status_when_entries_tree_present(
+    tmp_path: Path, sample_ged: Path
+) -> None:
+    entry_dir = tmp_path / "corpora" / "entries" / "samples" / "bach"
+    entry_dir.mkdir(parents=True)
+    (entry_dir / "bach.ged").write_bytes(sample_ged.read_bytes())
+
+    runner = CliRunner()
+    result = runner.invoke(cli, ["status", "--repo", str(tmp_path), "--json"])
+
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["totals"]["entries"] == 1
+    assert payload["genres"][0]["genre"] == "samples"
+
+
 def test_build_without_source_or_config_fails_clearly(tmp_path: Path) -> None:
     result = CliRunner().invoke(cli, ["build", "--repo", str(tmp_path)])
     assert result.exit_code != 0

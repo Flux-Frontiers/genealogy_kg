@@ -33,6 +33,10 @@ CASES = [
     ("@#DHEBREW@ 1 TSH 5785", {}, None),
     ("@#DFRENCH R@ 1 VEND 8", {}, None),
     ("100 BC", {}, None),
+    # A day/month combination the Gregorian calendar does not have (a
+    # mistyped source record) resolves to nothing rather than raising.
+    ("30 FEB 1901", {}, None),
+    ("31 APR 1901", {}, None),
 ]
 
 

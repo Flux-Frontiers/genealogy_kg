@@ -4,7 +4,7 @@ No real family export exists for this project, and one would be personal
 data anyway. Development and testing run against public GEDCOM files fetched
 by `scripts/fetch_corpora.sh` into `corpora/`, which is gitignored except for
 `corpora/entries/`. The only GEDCOMs tracked in this repo are the fictional
-`tests/fixtures/sample.ged` and the 98 public-domain-era trees under
+`tests/fixtures/sample.ged` and the 97 public-domain-era trees under
 `corpora/entries/` (below) -- everything else in `corpora/` is fetched,
 never committed.
 
@@ -53,13 +53,24 @@ histories, language families, Windows versions, DNA haplogroups). The
 non-genealogical ones are a cheap way to check that nothing in the extractor
 assumes people are human.
 
-Three files in the collection do not parse, and none is worth fixing:
+Three files in the collection did not originally parse:
 
-- `US presidents/GeorgeWashington+Family+Small.ged`: truncated header
-- `fictional characters/Lord+of+the+Rings+Family+Tree.ged`: stray blank
-  line at 1108
+- `fictional characters/Lord+of+the+Rings+Family+Tree.ged`: a stray blank
+  line after `0 TRLR` at 1108, which ged4py's strict grammar rejected as
+  invalid syntax. Fixed: `GedcomFile` now trims trailing blank lines from
+  the copy it hands ged4py (`gedcom._trim_trailing_blank_lines`), without
+  shifting any real record's byte offset, so `spans()`'s line numbers (read
+  from the untouched file on disk) are unaffected. Committed at
+  `corpora/entries/fictional-characters/lord-of-the-rings-family-tree/`.
+- `US presidents/GeorgeWashington+Family+Small.ged`: not a truncated
+  header -- the file is, byte for byte, a saved HTML error page (a Google
+  Groups page, not a GEDCOM export), and upstream `D-Jeffrey/gedcom-samples`
+  carries the identical broken content, confirmed by diff against its
+  `main` branch. Not fixable by re-fetching from the documented source;
+  dropped from `corpora/entries/us-presidents/`.
 - `religious figures and systems/Wikipedia+Gods+not+Yet+Connected.ged`:
-  byte `0x85` under a charset that cannot hold it
+  byte `0x85` under a charset that cannot hold it. Not committed to
+  `corpora/entries/`; still unresolved.
 
 Many files declare `CHAR ANSI`, `IBMPC` or `IBM WINDOWS`, none of which the
 standard allows. ged4py warns once per file and reads them as cp1252 or
@@ -80,7 +91,7 @@ European royal families -- vendored, then removed on that same check.
 The safety boundary is now the living-person filter itself, enforced at
 the query/pack/MCP boundary (`GedcomExtractor.is_living()`, through
 `pack()`) rather than which files are let into the repo. That's what let
-the corpus grow to its current 98 trees across 10 genres -- `royal92.ged`
+the corpus grow to its current 97 trees across 10 genres -- `royal92.ged`
 included, per the table below -- without re-doing a person-by-person audit
 of each one. `genkg corpus survey`/`ingest` (see the main
 [README](../README.md#the-curated-corpus)) build and register them; the

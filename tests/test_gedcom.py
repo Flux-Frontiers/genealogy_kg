@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from genealogy_kg.gedcom import GedcomFile, place_slug
+from genealogy_kg.gedcom import GedcomFile, _trim_trailing_blank_lines, place_slug
 
 
 def test_place_slug() -> None:
@@ -44,3 +44,29 @@ def test_line_of_matches_a_known_tag_line(sample_ged: Path, corpus_root: Path) -
         ind = next(gedcom.records("INDI"))
         birt = ind.sub_tag("BIRT")
         assert gedcom.line_of(birt.offset) == birt_line
+
+
+def test_trim_trailing_blank_lines() -> None:
+    assert _trim_trailing_blank_lines(b"0 TRLR\n") == b"0 TRLR"
+    assert _trim_trailing_blank_lines(b"0 TRLR\n\n") == b"0 TRLR"
+    assert _trim_trailing_blank_lines(b"0 TRLR\r\n\r\n  \n") == b"0 TRLR"
+    assert _trim_trailing_blank_lines(b"") == b""
+    # never over-strips to nothing when the file is blank throughout
+    assert _trim_trailing_blank_lines(b"\n\n") == b"\n\n"
+
+
+def test_gedcom_file_tolerates_trailing_blank_line(sample_ged: Path, corpus_root: Path) -> None:
+    # A blank line after 0 TRLR is invalid per ged4py's strict grammar but a
+    # common, harmless artifact of some GEDCOM exporters -- confirm it no
+    # longer raises, and that trimming it doesn't shift any real record's
+    # line numbers (computed from the untouched file on disk).
+    ged_path = corpus_root / "family.ged"
+    with GedcomFile(ged_path) as gedcom:
+        clean_spans = gedcom.spans()
+
+    padded_path = corpus_root / "family_padded.ged"
+    padded_path.write_bytes(ged_path.read_bytes() + b"\n\n  \n")
+    with GedcomFile(padded_path) as gedcom:
+        padded_spans = gedcom.spans()
+
+    assert padded_spans == clean_spans
