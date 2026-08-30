@@ -7,6 +7,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.0] - 2026-08-30
+
+First published release. Everything below shipped at once, so this entry
+covers Phases 1 through 5 of the plan in `docs/DESIGN.md` plus the
+codebase-hardening pass that followed.
+
+Note on numbering, because two schemes collide here: `docs/DESIGN.md` labels
+its plan phases `0.1.0` through `0.5.0`. Those are milestones in that plan,
+**not published versions** -- none of them was ever released. This 0.1.0 is
+the first version of `genealogy-kg` to exist as a package, and it contains
+all five.
+
 ### Fixed
 
 - `gedcom.py` now trims trailing whitespace-only bytes from the copy handed
@@ -83,7 +95,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   resolver takes the maximum, and still the defect FLEET_STANDARDS.md rule 4
   names: a reader cannot tell which number is the real requirement. All
   three now read `>=0.18.1`, and `pycode-kg` moves to `>=0.24.1`.
-
 - The `viz` extra pulls `kgmodule-utils[viz]` rather than hand-listing
   `pyvis`. The renderer is `kg_utils.viz.build_graph_html`, so the SDK owns
   that dependency; hand-listing a render stack while never depending on the
@@ -117,7 +128,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   another corpus and `--registry` to override the registry path. With no
   `corpora/entries/` tree present it falls back to the previous single-store
   report.
-
 - `genkg quilt`/`genkg viz3d`'s `XREF` argument is now optional: if omitted,
   it falls back to `[tool.genealogykg] default_xref` in `pyproject.toml`
   (`config.load_default_xref()`), erroring clearly if neither is set. A repo
