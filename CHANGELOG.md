@@ -47,6 +47,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The `viz3d` extra floors `quiltwright` at `>=0.10.0`, up from `>=0.8.0`,
+  and `docs/DESIGN.md` names the same number. Declared unmarked, per
+  FLEET_STANDARDS.md; the `; python_version < '3.13'` marker that older
+  quiltwright pins needed has been obsolete since 0.4.0 widened
+  `requires-python`, and none survived here. 0.10.0 moved `QuiltSpec`,
+  the presets, `save_quilt` and `cast_quilt` out of the PyVista backend
+  into `quiltwright.quilt` and `quiltwright.bridge`, but keeps
+  package-level and `quiltwright.lfd` re-exports, so the four names
+  `cmd_viz.py` and `viz3d.py` import from the top level are unaffected.
+  The relock also carries `plotly` 6.9.0 -> 7.0.0.
 - CI's `test` job installs the `viz3d` extra and runs pytest under
   `xvfb-run -a`, with `xvfb`, `libgl1`, `libglx-mesa0` and `libxrender1`
   from apt. The extra was previously left out because the runner has no
