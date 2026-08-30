@@ -452,7 +452,7 @@ module-to-limb mapping (`scene3d.py`) are the patterns `scene.py` follows.
    for free and `kg_utils.viz3d.qt.cast_scene_to_looking_glass` does the
    entire cast in one call.
 3. `pip install "genealogy-kg[viz3d]"` (PyVista/PyQt5-backed, heavy);
-   `quiltwright>=0.8.0`.
+   `quiltwright>=0.10.0`.
 
 Two things landed differently from the sketch above, both discovered by
 testing against a real corpus rather than the 12-person fixture -- exactly

@@ -47,6 +47,31 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- The `viz3d` extra floors `quiltwright` at `>=0.10.0`, up from `>=0.8.0`,
+  and `docs/DESIGN.md` names the same number. Declared unmarked, per
+  FLEET_STANDARDS.md; the `; python_version < '3.13'` marker that older
+  quiltwright pins needed has been obsolete since 0.4.0 widened
+  `requires-python`, and none survived here. 0.10.0 moved `QuiltSpec`,
+  the presets, `save_quilt` and `cast_quilt` out of the PyVista backend
+  into `quiltwright.quilt` and `quiltwright.bridge`, but keeps
+  package-level and `quiltwright.lfd` re-exports, so the four names
+  `cmd_viz.py` and `viz3d.py` import from the top level are unaffected.
+  The relock also carries `plotly` 6.9.0 -> 7.0.0.
+- CI's `test` job installs the `viz3d` extra and runs pytest under
+  `xvfb-run -a`, with `xvfb`, `libgl1`, `libglx-mesa0` and `libxrender1`
+  from apt. The extra was previously left out because the runner has no
+  Qt/GL libraries, on the reasoning that the affected tests degrade via
+  `pytest.importorskip("pyvista")`. They do -- which meant the six scene
+  tests skipped on every single CI run rather than failing, and `scene.py`
+  had no runtime coverage in CI at all. The recipe is copied from
+  `quiltwright`'s `tests.yml`, which solved the same problem for the same
+  render stack. Coverage rises to 86.9%, comfortably over the 80% gate.
+- `analysis/genealogy_kg_analysis_*.md`, written by `pycodekg analyze`, is
+  gitignored. The fleet is split -- `pycode_kg`, `doc_kg` and `quiltwright`
+  track their dated reports, `gutenberg_kg` ignores them -- and this repo
+  had no opinion either way, so the directory appeared unannounced after
+  any analyze run. It now matches how the repo already treats
+  `docs/CODEBASE_REVIEW.md`.
 - `GeorgeWashington+Family+Small.ged` is dropped from `corpora/entries/`
   rather than fixed. It was recorded as having a truncated header; it is in
   fact, byte for byte, a saved Google Groups HTML error page, and upstream
@@ -102,16 +127,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `famous-trees`: build a `.genealogykg` store from a public GEDCOM sample
   and open it in `genkg viz3d --schematic`. `fetch-corpora` pulls the
   samples via `scripts/fetch_corpora.sh`.
-- `corpora/vendored/`: three public-domain-era GEDCOMs (`bronte.ged`,
-  `washington.ged`, `EnglishTudorRoyalFamily.ged`) tracked in the repo --
-  the sole exception to "GEDCOMs are never committed" (`docs/CORPORA.md`,
-  `.claude/CLAUDE.md`). Each was checked person-by-person for anyone born
-  after 1920 with no recorded death before vendoring; `royal92.ged` was
-  vendored and then removed on that same check -- its root (William the
-  Conqueror, d. 1087) looks historical, but growing his descent line walks
-  straight into the living modern British and European royal families, so
-  `famous-royal` (like `famous-kennedy`, ruled out the same way) stays
-  fetch-only. See `corpora/vendored/NOTICE.md`.
+- `corpora/entries/`: 97 public GEDCOMs tracked in the repo as
+  `<genre>/<slug>/<file>.ged` across ten genres -- the sole exception to
+  "GEDCOMs are never committed" (`docs/CORPORA.md`, `.claude/CLAUDE.md`).
+  It began as `corpora/vendored/`: three trees (`bronte.ged`,
+  `washington.ged`, `EnglishTudorRoyalFamily.ged`), each checked
+  person-by-person for anyone born after 1920 with no recorded death.
+  `royal92.ged` was vendored and then removed on that same check -- its
+  root (William the Conqueror, d. 1087) looks historical, but growing his
+  descent line walks straight into the living modern British and European
+  royal families -- and the Kennedy tree was ruled out the same way. That
+  per-file audit is what the living-person filter replaced: redaction now
+  happens at the query/pack/MCP boundary
+  (`GedcomExtractor.is_living()`, enforced through `pack()`), which is what
+  let the corpus grow to its present size with both of those trees in it.
+  See `corpora/entries/NOTICE.md`.
 - Phase 4: 2-D family-tree diagrams, behind the `viz` extra. `viz.py` supplies
   only the genealogy vocabulary -- kinds, colours, shapes, tooltip fields --
   over the fleet's shared renderer, the same split `pycode_kg.graph_html` uses

@@ -63,14 +63,14 @@ jobs:
           path: .venv
           key: typecheck-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
-      # All three extras, unlike the test job: ty never executes anything (no
-      # Qt event loop, no GL context), it only needs the packages importable
-      # on disk to resolve their type stubs. Skipping viz3d here would make
+      # All three extras. ty never executes anything (no Qt event loop, no GL
+      # context), it only needs the packages importable on disk to resolve
+      # their type stubs. Skipping viz3d here would make
       # `plotter.reset_camera()` in cmd_viz.py type-check as Any (unresolved
       # import) instead of catching the real pyvista/functools stub mismatch
       # its `ty: ignore[missing-argument]` comment documents -- and it would
-      # flag that comment as unused, the opposite problem. See the test job's
-      # comment for why viz3d stays out of the *runtime* test job.
+      # flag that comment as unused, the opposite problem. The test job
+      # installs the same three, but needs xvfb on top to run them.
       - name: Install dependencies
         run: poetry install --no-interaction --with dev -E viz -E adapter -E viz3d
 
@@ -101,24 +101,40 @@ jobs:
           path: .venv
           key: test-${{ runner.os }}-${{ hashFiles('poetry.lock') }}
 
-      # viz (plotly/streamlit/pyvis) and adapter (kg-rag) so test_viz.py and
-      # the kg_rag-gated registry tests actually run instead of erroring on
-      # collection or silently skipping -- local `pre-commit`/pytest use a
-      # maintainer venv with these installed, so CI needs the same surface
-      # or a green pre-commit run stops predicting a green CI run.
+      # The runner has no GPU and no X display, so pyvista's off-screen
+      # rendering needs a software GL stack and a virtual framebuffer to
+      # render into. Copied from quiltwright's .github/workflows/tests.yml,
+      # which solved the same problem for the same PyVista/Qt surface (minus
+      # povray, which this repo does not need).
+      - name: Install system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb libgl1 libglx-mesa0 libxrender1
+
+      # All three extras, matching the type-check job. viz (plotly/streamlit/
+      # pyvis) and adapter (kg-rag) so test_viz.py and the kg_rag-gated
+      # registry tests actually run instead of erroring on collection or
+      # silently skipping -- local `pre-commit`/pytest use a maintainer venv
+      # with these installed, so CI needs the same surface or a green
+      # pre-commit run stops predicting a green CI run.
       #
-      # viz3d (PyQt5, pyvistaqt) is NOT installed here: it needs Qt/GL system
-      # libraries this runner doesn't have, and every test that needs it
-      # already degrades via `pytest.importorskip("pyvista")`, so those cases
-      # skip in CI rather than fail.
+      # viz3d (PyQt5, pyvistaqt) is installed for the same reason: the six
+      # tests in test_scene.py that build a real scene degrade via
+      # `pytest.importorskip("pyvista")`, so leaving the extra out did not
+      # fail CI, it silently skipped every one of them on every run. With the
+      # xvfb step above they execute.
       - name: Install dependencies
-        run: poetry install --no-interaction --with dev -E viz -E adapter
+        run: poetry install --no-interaction --with dev -E viz -E adapter -E viz3d
 
       # --cov activates the fail_under gate in [tool.coverage.report]
       # (pyproject.toml) -- coverage.py reads it automatically. --cov-fail-under
       # is not repeated here on purpose: one number to keep in sync, not two.
+      #
+      # xvfb-run wraps the whole invocation rather than just the 3-D cases:
+      # pytest picks its DISPLAY up from the environment, and there is no
+      # per-test hook to scope it more narrowly.
       - name: Run tests
-        run: poetry run pytest -m "not integration" --cov=genealogy_kg --cov-report=term-missing
+        run: xvfb-run -a poetry run pytest -m "not integration" --cov=genealogy_kg --cov-report=term-missing
 
   wheel:
     name: Installed CLI
