@@ -193,4 +193,11 @@ corpora/*
 # rendering library is inlined, and it is reproducible from the corpus.
 renders/
 # === end KG generated artifacts ===
+
+# Generated review output. Both files are regenerable from the repo's own
+# PyCodeKG graph and are snapshots of a moment, not documentation, so neither
+# is tracked. The fleet is split on the analyze reports -- pycode_kg, doc_kg
+# and quiltwright track theirs, gutenberg_kg ignores them; this repo ignores
+# them, matching how it already treats the review.
 docs/CODEBASE_REVIEW.md
+analysis/genealogy_kg_analysis_*.md
