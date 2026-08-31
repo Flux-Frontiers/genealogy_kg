@@ -16,6 +16,7 @@ authors:
     affiliation: "Flux-Frontiers"
 version: "0.1.0"
 date-released: "2026-08-30"
+doi: "10.5281/zenodo.22182369"
 license-url: "https://www.elastic.co/licensing/elastic-license"
 repository-code: "https://github.com/Flux-Frontiers/genealogy_kg"
 url: "https://github.com/Flux-Frontiers/genealogy_kg"
