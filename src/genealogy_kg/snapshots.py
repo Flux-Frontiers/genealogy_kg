@@ -18,7 +18,6 @@ License: Elastic 2.0
 
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 from kg_utils.snapshots import PruneResult as PruneResult  # noqa: F401 -- re-export
@@ -35,8 +34,9 @@ class GenealogySnapshotManager(_BaseSnapshotManager):
     :param snapshots_dir: Snapshot directory.
     """
 
-    def __init__(self, snapshots_dir: Path | str) -> None:
-        super().__init__(snapshots_dir, package_name="genealogy-kg")
+    #: Version detection reads this; the base records it as the snapshot's
+    #: ``tool``. Replaces an ``__init__`` that only forwarded to ``super()``.
+    package_name = "genealogy-kg"
 
     def capture_genealogy(
         self,
@@ -46,6 +46,8 @@ class GenealogySnapshotManager(_BaseSnapshotManager):
         version: str | None = None,
         branch: str | None = None,
         tree_hash: str = "",
+        key: str = "",
+        subject: str = "",
     ) -> Snapshot:
         """Capture a snapshot from ``stats()`` and ``analysis()`` output.
 
@@ -53,7 +55,17 @@ class GenealogySnapshotManager(_BaseSnapshotManager):
         :param analysis: ``GenealogyKG.analysis()``.
         :param version: Version string; the installed package version if ``None``.
         :param branch: Git branch; auto-detected if ``None``.
-        :param tree_hash: Git tree hash; auto-detected if empty.
+        :param tree_hash: Git tree hash, recorded as provenance; auto-detected
+            if empty. It is not the snapshot's key.
+        :param key: Snapshot identifier. Pass the release tag at release time;
+            omit it and the base assigns a UTC timestamp, which is the right
+            answer for a corpus. Named explicitly and forwarded by name: until
+            0.2.0 this method took neither ``key`` nor ``subject`` and never
+            passed them on, so ``genkg snapshot save VERSION`` accepted a tag
+            and silently discarded it.
+        :param subject: What was measured, e.g. ``repo:genealogy-kg`` or
+            ``tree:kennedy``. Recorded separately from ``version``, which names
+            the measuring tool.
         :return: A :class:`~kg_utils.snapshots.Snapshot`, not yet saved.
         """
         counts = analysis.get("counts", {})
@@ -73,7 +85,12 @@ class GenealogySnapshotManager(_BaseSnapshotManager):
             "living_redacted": analysis.get("living_redacted", 0),
         }
         return super().capture(
-            version=version, branch=branch, graph_stats_dict=metrics, tree_hash=tree_hash
+            version=version,
+            branch=branch,
+            graph_stats_dict=metrics,
+            tree_hash=tree_hash,
+            key=key,
+            subject=subject,
         )
 
     def get_previous(self, key: str) -> Snapshot | None:
@@ -82,9 +99,11 @@ class GenealogySnapshotManager(_BaseSnapshotManager):
         The base class knows only saved keys, so a freshly captured (unsaved)
         snapshot would get no ``vs_previous``; for an unknown key this falls
         back to the most recently saved snapshot instead, as ``diary_kg``
-        does.
+        does. Kept deliberately: it persists the delta into the snapshot file
+        rather than leaving it null for the read path to reconstruct.
 
-        :param key: Tree hash of the snapshot being placed.
+        :param key: Key of the snapshot being placed. A release tag or a UTC
+            timestamp -- no longer a tree hash.
         :return: The previous snapshot, or ``None`` when there is none.
         """
         manifest = self.load_manifest()

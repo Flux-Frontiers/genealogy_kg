@@ -97,9 +97,11 @@ def test_snapshot_save_list_show_diff(corpus_root: Path) -> None:
 
     listed = runner.invoke(cli, ["snapshot", "list", "--repo", repo])
     assert listed.exit_code == 0, listed.output
-    assert "a" * 12 in listed.output and "0.3.0" in listed.output
+    # Keyed on the VERSION argument, not the tree hash passed beside it.
+    assert "0.3.0" in listed.output
+    assert "a" * 12 not in listed.output
 
-    shown = runner.invoke(cli, ["snapshot", "show", "a" * 40, "--repo", repo])
+    shown = runner.invoke(cli, ["snapshot", "show", "0.3.0", "--repo", repo])
     assert shown.exit_code == 0, shown.output
     assert "generation_depth: 4" in shown.output
 
@@ -119,7 +121,7 @@ def test_snapshot_save_list_show_diff(corpus_root: Path) -> None:
         ],
     )
     assert second.exit_code == 0, second.output
-    diff = runner.invoke(cli, ["snapshot", "diff", "a" * 40, "b" * 40, "--repo", repo])
+    diff = runner.invoke(cli, ["snapshot", "diff", "0.3.0", "0.3.1", "--repo", repo])
     assert diff.exit_code == 0, diff.output
     assert "people" in diff.output and "+0" in diff.output
 
