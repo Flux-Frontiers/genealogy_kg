@@ -7,6 +7,44 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- **`genkg snapshot save VERSION` accepted a release tag and discarded it.**
+  `capture_genealogy()` took neither `key` nor `subject` and passed neither to
+  the base, so every snapshot was keyed on whatever the base fell back to: a
+  UTC timestamp, or -- on this repo's `kgmodule-utils>=0.18.1` floor -- the git
+  tree hash. That hash is read before `git add` stages the snapshot, so it names
+  a tree that is never committed and cannot be resolved afterwards.
+
+  The same defect was found and fixed in `ftree_kg` and `diary_kg`. It was
+  missed here because the floor was never raised past 0.18.1 and because two
+  tests asserted the tree-hash keys as though they were intended.
+
+  `capture_genealogy()` now takes `key` and `subject` and forwards both by
+  name; `snapshot save` passes `key=VERSION` and gains `--subject`. An omitted
+  VERSION still yields a timestamp, which is the right answer for a family tree
+  that has no release tag.
+
+### Changed
+
+- **`SnapshotManager.__init__` is gone**, replaced by the `package_name` class
+  attribute added in `kgmodule-utils` 0.20.0. Its entire body forwarded to
+  `super()` to change one string.
+
+- **The floors on `kgmodule-utils` move from `>=0.18.1` to `>=0.20.0`** in all
+  three places. 0.19.0 is where snapshots stopped being keyed on the tree hash,
+  and 0.20.0 supplies the `package_name` class attribute this module now uses.
+
+- The module docstring no longer claims snapshots are "keyed by git tree hash,
+  like every other KG in the fleet"; that stopped being true fleet-wide at
+  `kgmodule-utils` 0.19.0. `get_previous()`'s docstring no longer describes its
+  argument as a tree hash.
+
+- **The `doc-kg` and `pycode-kg` tooling pins** now floor on doc-kg 0.26.0 and
+  pycode-kg 0.27.0, the releases that retired those packages' own snapshot
+  overrides.
+
+
 ## [0.1.0] - 2026-08-30
 
 First published release. Everything below shipped at once, so this entry

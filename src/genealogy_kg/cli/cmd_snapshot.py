@@ -1,7 +1,10 @@
 """``genkg snapshot`` -- save, list, show and diff metric snapshots.
 
 Snapshots live in ``.genealogykg/snapshots/`` (tracked in git) and are keyed
-by git tree hash, like every other KG in the fleet.
+by the release tag passed to ``genkg snapshot save VERSION``, or by a UTC
+timestamp when no tag is given. The git tree hash is recorded as provenance
+and is not the key: it is read before ``git add`` stages the snapshot, so it
+names a tree that never gets committed.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
@@ -36,13 +39,30 @@ def snapshot() -> None:
 @db_option
 @click.option("--branch", default=None, help="Branch name; auto-detected if not given.")
 @click.option("--tree-hash", default="", help="Git tree hash; auto-detected if not given.")
+@click.option(
+    "--subject",
+    default="",
+    help="What was measured, e.g. 'repo:genealogy-kg' or 'tree:kennedy'.",
+)
 @click.option("--force", is_flag=True, help="Write a new entry even if metrics are unchanged.")
 def save(
-    version: str, repo: str, db: str | None, branch: str | None, tree_hash: str, force: bool
+    version: str,
+    repo: str,
+    db: str | None,
+    branch: str | None,
+    tree_hash: str,
+    subject: str,
+    force: bool,
 ) -> None:
     """Capture the current graph metrics as a snapshot.
 
-    VERSION defaults to the installed genealogy-kg version.
+    \b
+    Pass VERSION explicitly at release time: it becomes the snapshot's key.
+    An omitted VERSION is auto-detected from the installed genealogy-kg
+    package, which names the measuring tool rather than the tree being
+    measured, so it is recorded as the version but never used as the key.
+    Omitting it keys the snapshot on a UTC timestamp instead, which is the
+    right answer for a family tree that has no release tag.
     """
     with open_kg(repo, db) as kg:
         if not kg.db_path.exists():
@@ -52,7 +72,15 @@ def save(
 
     mgr = SnapshotManager(_snapshots_dir(repo))
     snap = mgr.capture_genealogy(
-        stats, analysis, version=version or None, branch=branch, tree_hash=tree_hash
+        stats,
+        analysis,
+        version=version or None,
+        branch=branch,
+        tree_hash=tree_hash,
+        # An explicit VERSION is a release tag and becomes the key. An
+        # auto-detected one is the measuring tool's version and must not be.
+        key=version or "",
+        subject=subject,
     )
     try:
         path = mgr.save_snapshot(snap, force=force)
@@ -62,6 +90,8 @@ def save(
     click.echo(f"Snapshot saved: {path or '(unchanged, entry refreshed)'}")
     click.echo(f"  Key:      {snap.key}")
     click.echo(f"  Version:  {snap.version}")
+    if snap.subject:
+        click.echo(f"  Subject:  {snap.subject}")
     for key in _LIST_COLUMNS:
         click.echo(f"  {key + ':':<18}{snap.metrics.get(key, 0)}")
 
