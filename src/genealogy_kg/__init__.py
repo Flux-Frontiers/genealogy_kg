@@ -8,4 +8,4 @@ from genealogy_kg.extractor import GedcomExtractor
 from genealogy_kg.module import GenealogyKG
 
 __all__ = ["GenealogyKG", "GedcomExtractor"]
-__version__ = "0.1.0"
+__version__ = "0.2.0"

@@ -42,7 +42,7 @@ packages = [{ include = "genealogy_kg", from = "src" }]
 # ---------------------------------------------------------------------------
 [project]
 name = "genealogy-kg"
-version = "0.1.0"
+version = "0.2.0"
 description = "KGModule for genealogical knowledge graphs built from GEDCOM files"
 readme = "README.md"
 license = "Elastic-2.0"
