@@ -3,7 +3,7 @@
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
 [![License: Elastic-2.0](https://img.shields.io/badge/License-Elastic%202.0-blue.svg)](https://www.elastic.co/licensing/elastic-license)
 [![PyPI](https://img.shields.io/pypi/v/genealogy-kg.svg)](https://pypi.org/project/genealogy-kg/)
-[![Version](https://img.shields.io/badge/version-0.1.0-blue.svg)](https://github.com/Flux-Frontiers/genealogy_kg/releases)
+[![Version](https://img.shields.io/badge/version-0.2.0-blue.svg)](https://github.com/Flux-Frontiers/genealogy_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/genealogy_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/genealogy_kg/actions/workflows/ci.yml)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22182369-blue.svg)](https://doi.org/10.5281/zenodo.22182369)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
@@ -215,7 +215,7 @@ metadata derived from birth, death and marriage dates.
 
 ```
 Suchanek, E. G. (2026). GenealogyKG: Genealogical Knowledge Graph
-(Version 0.1.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.22182369
+(Version 0.2.0) [Software]. Flux-Frontiers. https://doi.org/10.5281/zenodo.22182369
 ```
 
 ```bibtex
@@ -223,7 +223,7 @@ Suchanek, E. G. (2026). GenealogyKG: Genealogical Knowledge Graph
   author    = {Suchanek, Eric G.},
   title     = {GenealogyKG: Genealogical Knowledge Graph},
   year      = {2026},
-  version   = {0.1.0},
+  version   = {0.2.0},
   url       = {https://github.com/Flux-Frontiers/genealogy_kg},
   doi       = {10.5281/zenodo.22182369},
 }
