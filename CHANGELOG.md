@@ -7,6 +7,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **`kgmodule-utils` floor raised to `>=0.22.0`** (was `>=0.20.0`), and
+  `quiltwright` to `>=0.14.1` (was `>=0.10.0`) in the `viz3d` extra. 0.22.0
+  makes the viewer's Cast to Looking Glass sweep quiltwright's standard
+  35-degree view cone instead of the preset's full cone, which for the 16"
+  landscape is 50 -- wider than reliably fuses, so hard edges on a family
+  tree's limbs ghosted where a quilt rendered by `genkg quilt` itself held.
+  Nothing in this repo changes; the fix arrives through
+  `kg_utils.viz3d.qt.cast_scene_to_looking_glass`, which `genealogy_kg.viz3d`
+  calls.
+
+  The quiltwright pin moves because `kgmodule-utils[viz3d-qt]>=0.22.0`
+  requires `quiltwright>=0.14.1` transitively. Poetry would have resolved that
+  regardless; declaring it keeps `pyproject.toml` honest about the real floor.
+
+
 ## [0.2.0] - 2026-09-08
 
 ### Fixed
