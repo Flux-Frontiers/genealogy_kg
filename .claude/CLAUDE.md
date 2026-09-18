@@ -19,11 +19,38 @@ env -u VIRTUAL_ENV -u POETRY_ACTIVE poetry run pytest
 env -u VIRTUAL_ENV -u POETRY_ACTIVE .venv/bin/pre-commit run --all-files
 ```
 
-Always unset `VIRTUAL_ENV` for repo commands; an inherited venv from another
-fleet repo hijacks `poetry run` silently.
+Always unset `VIRTUAL_ENV` for repo commands, `make` included; an inherited
+venv from another fleet repo hijacks `poetry run` silently.
 
 Before any commit: run pre-commit on all files and fix what it reports. The
 hook chain runs `ty` and the full test suite on every commit.
+
+## Make targets
+
+`make help` prints the same list. Every target shells out to `poetry run`, so
+prefix with `env -u VIRTUAL_ENV -u POETRY_ACTIVE`.
+
+| target | what it runs |
+| --- | --- |
+| `setup` | `./scripts/setup.sh` -- Poetry install with the dev group |
+| `install` | `poetry install` -- core runtime only, no dev group |
+| `test` | `pytest tests -v --cov=genealogy_kg` (coverage floor is 80%) |
+| `lint` | `ruff check src tests conftest.py` |
+| `format` | `ruff format src tests conftest.py` |
+| `type` | `ty check src` |
+| `build-kg` | `pycodekg build` + `dockg build` over this repo (needs `--with kg`) |
+| `clean` | remove `__pycache__`, `.pytest_cache`, `dist/`, `build/`, `*.egg-info` |
+| `all` | `setup test lint type` |
+| `fetch-corpora` | `./scripts/fetch_corpora.sh` -- fills the gitignored `corpora/` |
+| `famous-bronte` | build + `genkg viz3d` the Brontes (9 people; quick smoke test) |
+| `famous-kennedy` | same for the Kennedys (66 people) |
+| `famous-royal` | same for `royal92.ged` (1756 people, 30 generations) |
+| `famous-trees` | all three famous-tree demos in sequence |
+
+The `famous-*` targets depend on `fetch-corpora`, need the `viz3d` extra
+(`poetry install -E viz3d`), and open a Qt window. They pass `--schematic`
+for speed; drop it in the Makefile for the slower organic-growth render.
+Each demo's `.genealogykg/` store lives beside its GEDCOM and is gitignored.
 
 ## Code style
 
@@ -36,7 +63,7 @@ hook chain runs `ty` and the full test suite on every commit.
 
 - Tests live in `tests/`; the fixture GEDCOM is `tests/fixtures/sample.ged`
   (fictional, 12 people, 4 families). Use the `sample_ged` and `corpus_root`
-  fixtures from `conftest.py`.
+  fixtures from `conftest.py`. Markers: `slow`, `integration`, `unit`.
 - Extraction must be deterministic: node IDs are `person:I1`, `family:F1`,
   `event:I1:BIRT`, `place:<slug>`, `source:S1` and must not change between
   builds of the same file.
@@ -49,31 +76,38 @@ hook chain runs `ty` and the full test suite on every commit.
   Read `corpora/entries/NOTICE.md` and `docs/CORPORA.md` before adding one.
 - The safety boundary for that corpus is the living-person filter itself --
   `GedcomExtractor.is_living()`, enforced through `pack()` at the
-  query/pack/MCP boundary -- not a curated allow-list of source files. It
-  used to be the allow-list: three trees (Bronte, Washington, Tudor) checked
-  person-by-person for anyone born after 1920 with no recorded death. That
-  approach hit its limit on `royal92.ged`, whose own root (William the
-  Conqueror, d. 1087) looks historical but whose descent line walks straight
-  into the living modern royal families; it was vendored and then removed,
-  and the Kennedy tree went the same way. Both are in `corpora/entries/`
-  today, admitted by the runtime filter rather than by an audit. Keep that
-  filter honest -- it is now the only thing standing between a committed
-  GEDCOM and a living person's record.
-- Public test corpora: `./scripts/fetch_corpora.sh` fills `corpora/`
-  (gitignored, except `corpora/entries/`). `docs/CORPORA.md` says which
-  file exercises what. Tests that need the fetched (untracked) ones are
-  marked `integration` and skip when they're missing.
+  query/pack/MCP boundary -- not a curated allow-list of source files. The
+  allow-list approach (audit each tree for anyone born after 1920 with no
+  recorded death) hit its limit on `royal92.ged`, whose root looks historical
+  (William the Conqueror, d. 1087) but whose descent line walks straight into
+  the living modern royal families. That tree and the Kennedy one are in
+  `corpora/entries/` today, admitted by the runtime filter rather than by an
+  audit. Keep that filter honest -- it is now the only thing standing between
+  a committed GEDCOM and a living person's record.
+- Public test corpora: `make fetch-corpora` fills `corpora/` (gitignored,
+  except `corpora/entries/`). `docs/CORPORA.md` says which file exercises
+  what. Tests that need the fetched (untracked) ones are marked `integration`
+  and skip when they're missing.
 
 ## Architecture
 
 - `gedcom.py`: reader over ged4py; records, line spans, name/place helpers
 - `temporal.py`: `temporal_keys()` is the only writer of `occurred_start` /
   `occurred_end` / `recorded_at`
-- `extractor.py`: `GedcomExtractor(KGExtractor)`
+- `extractor.py`: `GedcomExtractor(KGExtractor)`, including `is_living()`
 - `module.py`: `GenealogyKG(KGModule)`, kind `genealogy`, store `.genealogykg/`
+- `config.py`: resolves `[tool.genealogykg]` / `.genealogykg/config.json`
+  (sources, `living_cutoff_years`, `unknown_birth_policy`)
 - `lineage.py`: ancestor/descendant/kinship walks over `GraphStore`
-- `mcp_server.py`: `genealogykg-mcp`
-- `cli/`: click group `genealogykg`, one module per command
+- `corpus.py`: the `corpora/entries/` tree; `analysis.py`, `snapshots.py`:
+  graph metrics and point-in-time snapshots
+- `viz.py`: 2-D pedigree/network HTML; `scene.py` + `viz3d.py`: 3-D growth
+  scene and the Qt viewer, over `kg_utils.viz3d.organic` and `quiltwright`
+- `adapter.py`: kg-rag federation, `KGKind.GENEALOGY`
+- `mcp_server.py`: `genkg-mcp`
+- `cli/`: click group `genkg`, one `cmd_*.py` per command (build, query, pack,
+  ancestors, descendants, analyze, corpus, snapshot, status, viz, viz3d,
+  quilt, install-hooks), registered by `cli/main.py`
 
 ## Indexing this repo
 
