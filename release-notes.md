@@ -1,46 +1,16 @@
-# Release Notes -- v0.2.0
+# Release Notes -- v0.2.1
 
-> Released: 2026-09-08
+> Released: 2026-09-18
 
-This release fixes `genkg snapshot save` so it actually keys a snapshot on
-the version you pass it, and removes a class override the SDK no longer
-requires.
+Casting a family tree to the Looking Glass now sweeps a 35-degree view cone instead of the panel's full cone.
 
 ## What changed
 
-**Snapshots now resolve to the tag you asked for.** `genkg snapshot save
-VERSION` accepted a release tag but never forwarded it, so every snapshot
-fell back to whatever the SDK chose instead: a UTC timestamp, or, on this
-repo's previous `kgmodule-utils` floor, a git tree hash read before `git
-add` staged the snapshot -- a hash that named a tree no commit ever
-produced, and so could never be resolved again afterward. `capture_genealogy()`
-now takes `key` and `subject` and forwards both, and `snapshot save` gains
-a `--subject` flag. Leave `VERSION` off and you still get a timestamp,
-which remains the right default for a family tree with no release tag of
-its own.
-
-**One less override to maintain.** `SnapshotManager.__init__` is gone.
-Its entire body existed to set one string that `kgmodule-utils` 0.20.0 now
-exposes as a `package_name` class attribute, so the subclass carries no
-code of its own anymore.
-
-**Dependency floors moved up to match.** `kgmodule-utils` now floors on
-`>=0.20.0` everywhere it's declared, `doc-kg` on `>=0.26.0`, and `pycode-kg`
-on `>=0.27.0` -- the releases where each of those packages retired the same
-kind of snapshot override this repo just dropped.
+**Cast to Looking Glass fuses cleanly.** The `kgmodule-utils` floor moves to 0.22.0, which routes Cast to Looking Glass through `quiltwright.quilt.resolve_view_cone`. The 16" landscape preset's native cone is 50 degrees -- wider than reliably fuses -- so a family tree's limbs previously ghosted where a quilt rendered by `genkg quilt` itself held. No code in this repo changed; the fix arrives through the shared `cast_scene_to_looking_glass` helper. The `quiltwright` pin moves to 0.14.1 alongside it, which the extra already required transitively.
 
 ## Upgrading
 
-Reinstall to pick up the new `kgmodule-utils`, `doc-kg`, and `pycode-kg`
-floors:
-
-```
-pip install --upgrade genealogy-kg
-```
-
-If you call `capture_genealogy()` directly rather than through the CLI,
-pass `key` and `subject` explicitly -- the previous implicit tree-hash
-fallback is gone along with the override that produced it.
+`poetry update kgmodule-utils quiltwright` (or `pip install -U kgmodule-utils quiltwright`). No config or API changes.
 
 ---
 
