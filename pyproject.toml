@@ -81,7 +81,7 @@ dependencies = [
     # forwarded to super(). 0.19.0 also stopped keying snapshots on the git
     # tree hash, which this package was still doing on the 0.18.1 floor -- a
     # release tag passed to `genkg snapshot save` never reached disk as the key.
-    "kgmodule-utils[semantic,sqlite-vec]>=0.20.0",
+    "kgmodule-utils[semantic,sqlite-vec]>=0.22.0",
     # Capped: mcp 2.0 split FastMCP into its own package, and mcp_server.py
     # imports it from `mcp` at module scope. Lift only alongside that port.
     "mcp>=1.0.0,<2",
@@ -107,7 +107,7 @@ adapter = [
 # by hand-listing the render stack and never depending on the SDK extra where
 # the code actually lives.
 viz = [
-    "kgmodule-utils[viz]>=0.20.0",
+    "kgmodule-utils[viz]>=0.22.0",
     "plotly>=5.14.0",
     "streamlit>=1.35.0",
 ]
@@ -124,8 +124,8 @@ viz3d = [
     "param>=2.0.0",
     "PyQt5>=5.15.0",
     "pyvistaqt>=0.11.0",
-    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.20.0",
-    "quiltwright>=0.10.0",
+    "kgmodule-utils[viz3d-render,viz3d-qt]>=0.22.0",
+    "quiltwright>=0.14.1",
 ]
 
 # ---------------------------------------------------------------------------
@@ -159,7 +159,7 @@ optional = true
 
 [tool.poetry.group.kg.dependencies]
 # Both floors are the releases that retired these packages' own snapshot
-# overrides and moved them onto kgmodule-utils>=0.20.0, the same SDK this repo
+# overrides and moved them onto kgmodule-utils>=0.22.0, the same SDK this repo
 # now requires. Pinned lower, `poetry install --with kg` could resolve a dockg
 # or pycodekg predating the shared extension points into the same environment
 # as a genealogy_kg that depends on them.
