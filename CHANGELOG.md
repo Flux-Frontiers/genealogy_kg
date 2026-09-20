@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **Fleet dependency floors raised and relocked** (`kgrag_priv` sweep item 49,
+  tier 1): `kg-rag` to `>=0.16.0`, `quiltwright` to `>=0.15.0`, `pycode-kg` to
+  `>=0.27.1`, and the `ruff` floor from `>=0.4.0` to `>=0.15` inside the
+  existing `<0.16` cap. `kgmodule-utils` rides up to 0.22.0 and `mcp` to
+  1.30.0 in the lock.
+- **`mcp` floor raised from `>=1.0.0` to `>=1.3.0`**, keeping the `<2` cap
+  (`kgrag_priv` sweep item 47). `genkg-mcp` passes both `instructions=` and
+  `lifespan=` to `FastMCP`, and 1.3.0 is the first release whose `FastMCP`
+  accepts either; `mcp.server.fastmcp` does not exist at all below 1.2.0. The
+  lock already resolved far above it, so the floor was wrong rather than the
+  environment.
+
 ## [0.2.1] - 2026-09-18
 
 ### Changed
