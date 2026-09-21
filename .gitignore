@@ -186,7 +186,6 @@ corpora/*
 !corpora/entries/
 
 # MCP server config -- machine-specific, contains absolute paths
-.mcp.json
 .mcp.json.sav
 
 # `genkg viz` output. Self-contained HTML runs to megabytes because the

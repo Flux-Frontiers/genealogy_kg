@@ -1,0 +1,35 @@
+{
+  "mcpServers": {
+    "pycodekg": {
+      "command": "${HOME}/.local/bin/pycodekg",
+      "args": [
+        "mcp",
+        "--repo",
+        "."
+      ],
+      "env": {
+        "POETRY_VIRTUALENVS_IN_PROJECT": "false"
+      }
+    },
+    "dockg": {
+      "command": "${HOME}/.local/bin/dockg-mcp",
+      "args": [
+        "--repo",
+        "."
+      ],
+      "env": {
+        "POETRY_VIRTUALENVS_IN_PROJECT": "false"
+      }
+    },
+    "genkg": {
+      "command": ".venv/bin/genkg-mcp",
+      "args": [
+        "--repo",
+        "."
+      ],
+      "env": {
+        "POETRY_VIRTUALENVS_IN_PROJECT": "false"
+      }
+    }
+  }
+}
