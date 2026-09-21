@@ -146,26 +146,6 @@ pytest-cov = ">=5.0.0"
 # .pre-commit-config.yaml.
 ruff = ">=0.15,<0.16"
 
-# ---------------------------------------------------------------------------
-# Maintainer tooling (Poetry group, not a PEP 621 extra)
-# ---------------------------------------------------------------------------
-# doc-kg and pycode-kg are tools this repo *runs*, not libraries it imports.
-# Nothing under src/ imports either one. .mcp.json serves both as MCP servers
-# and `make build-kg` invokes their CLIs.
-#
-#   poetry install --with kg      # get the dockg / pycodekg CLIs into .venv/bin
-[tool.poetry.group.kg]
-optional = true
-
-[tool.poetry.group.kg.dependencies]
-# Both floors are the releases that retired these packages' own snapshot
-# overrides and moved them onto kgmodule-utils>=0.22.0, the same SDK this repo
-# now requires. Pinned lower, `poetry install --with kg` could resolve a dockg
-# or pycodekg predating the shared extension points into the same environment
-# as a genealogy_kg that depends on them.
-doc-kg = ">=0.26.0"
-pycode-kg = ">=0.27.1"
-
 [project.urls]
 Homepage   = "https://github.com/Flux-Frontiers/genealogy_kg"
 Repository = "https://github.com/Flux-Frontiers/genealogy_kg"
