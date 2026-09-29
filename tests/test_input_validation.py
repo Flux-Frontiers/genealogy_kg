@@ -41,6 +41,23 @@ def test_query_rejects_hop_out_of_range(built_kg: GenealogyKG) -> None:
         built_kg.query("chemist", hop=6)
 
 
+def test_query_rejects_an_over_long_q(built_kg: GenealogyKG) -> None:
+    """The 500-character cap is tighter than the SDK's default."""
+    with pytest.raises(ValueError, match="at most 500 characters"):
+        built_kg.query("x" * 501)
+
+
+def test_query_accepts_q_at_the_limit(built_kg: GenealogyKG) -> None:
+    built_kg.query("x" * 500)  # must not raise
+
+
+@pytest.mark.parametrize("bad", [True, 2.5, "5"])
+def test_query_rejects_a_non_integer_k(built_kg: GenealogyKG, bad: object) -> None:
+    """The old local check took True as 1 and 2.5 as in range."""
+    with pytest.raises(ValueError, match="k must be an integer"):
+        built_kg.query("chemist", k=bad)  # type: ignore[arg-type]
+
+
 def test_query_accepts_hop_zero(built_kg: GenealogyKG) -> None:
     built_kg.query("chemist", hop=0)  # must not raise
 

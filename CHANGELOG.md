@@ -14,8 +14,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   return the base class, so `with GenealogyKG(...) as kg:` lost the subclass
   surface under `ty`. kgmodule-utils 0.23.0 returns `Self`, so the
   workaround is redundant; `ty` is clean without it.
+- **The local `bounded_int` and `require_query` are gone** (`kgrag_priv`
+  sweep item 52). This module was the fleet's reference implementation, and
+  kgmodule-utils took both over; they now come from `kg_utils.validation`.
+  `query()` and `pack()` no longer validate themselves: the base class does,
+  against the `max_k`, `max_hop`, `max_max_nodes` and `max_query_len` class
+  attributes, which are set from this package's constants. The overrides
+  stay for the genealogy edge defaults and living-person redaction.
 
 ### Changed
+
+- **Stricter integer checks.** The SDK's `bounded_int` rejects a bool, a
+  non-integral float and a string with a `ValueError`. The local copy
+  compared only the range, so `k=True` passed as 1, `k=2.5` passed, and
+  `k="5"` failed with a raw `TypeError`.
+- **Fleet dependency floors raised to the latest releases and relocked:**
+  `kgmodule-utils` to `>=0.26.0`, `quiltwright` to `>=0.16.0` and `kg-rag`
+  to `>=0.17.0`.
 
 - **Fleet dependency floors raised and relocked** (`kgrag_priv` sweep item 46):
   `kgmodule-utils` to `>=0.23.0`. The three packages released on 2026-09-20 and put
