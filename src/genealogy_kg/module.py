@@ -17,6 +17,7 @@ from typing import Any
 from kg_utils.pipeline import KGModule
 from kg_utils.semantic import DEFAULT_MODEL
 from kg_utils.specs import BuildStats, QueryResult, SnippetPack
+from kg_utils.validation import bounded_int
 
 from genealogy_kg.analysis import analyze_graph, render_report
 from genealogy_kg.config import (
@@ -34,9 +35,8 @@ from genealogy_kg.validation import (
     MAX_HOP,
     MAX_K,
     MAX_MAX_NODES,
-    bounded_int,
+    MAX_QUERY_LEN,
     normalize_xref,
-    require_query,
 )
 
 #: Relations followed by default during query/pack expansion. ``CITES`` is
@@ -102,6 +102,13 @@ class GenealogyKG(KGModule):
     """
 
     _default_dir = ".genealogykg"
+    # The base class validates query() and pack() arguments against these.
+    # They are set from this package's constants, which the CLI's ranges and
+    # these docstrings cite; the query cap is tighter than the SDK default.
+    max_k = MAX_K
+    max_hop = MAX_HOP
+    max_max_nodes = MAX_MAX_NODES
+    max_query_len = MAX_QUERY_LEN
 
     def __init__(
         self,
@@ -196,9 +203,6 @@ class GenealogyKG(KGModule):
         :return: :class:`~kg_utils.specs.QueryResult`.
         :raises ValueError: If ``q``, ``k``, or ``hop`` is out of bounds.
         """
-        q = require_query(q)
-        bounded_int("k", k, 1, MAX_K)
-        bounded_int("hop", hop, 0, MAX_HOP)
         return super().query(q, k=k, hop=hop, rels=rels, **kwargs)
 
     def pack(
@@ -231,11 +235,7 @@ class GenealogyKG(KGModule):
         :raises RuntimeError: If living-person redaction is configured but no
             GEDCOM sources resolved to verify it against -- see below.
         """
-        q = require_query(q)
-        bounded_int("k", k, 1, MAX_K)
-        bounded_int("hop", hop, 0, MAX_HOP)
         if max_nodes is not None:
-            bounded_int("max_nodes", max_nodes, 1, MAX_MAX_NODES)
             kwargs["max_nodes"] = max_nodes
         result = super().pack(q, k=k, hop=hop, rels=rels, **kwargs)
         extractor = self.make_extractor()

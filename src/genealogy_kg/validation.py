@@ -1,9 +1,14 @@
 """genealogy_kg/validation.py
 
-Boundary validation shared by the CLI and MCP server: bounded numeric
-ranges and GEDCOM xref normalization. Both surfaces accept external input
-(the MCP server explicitly supports the SSE transport beyond a trusted
-local environment), so both call these before touching the graph.
+Boundary validation shared by the CLI and MCP server: the package's
+numeric limits and GEDCOM xref normalization. Both surfaces accept external
+input (the MCP server explicitly supports the SSE transport beyond a
+trusted local environment), so both are checked before touching the graph.
+
+``bounded_int`` and ``require_query`` lived here as the fleet's reference
+implementation until kgmodule-utils took them over; they now come from
+``kg_utils.validation``, and the base class applies them to ``query()`` and
+``pack()`` with the limits below.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
@@ -49,34 +54,3 @@ def normalize_xref(raw: str) -> str:
             f"invalid xref {raw!r}: expected a GEDCOM pointer like 'I7', '@I7@', or 'person:I7'"
         )
     return xref
-
-
-def bounded_int(name: str, value: int, minimum: int, maximum: int) -> int:
-    """Validate that an integer falls within an inclusive range.
-
-    :param name: Parameter name, used in the error message.
-    :param value: The value to validate.
-    :param minimum: Inclusive lower bound.
-    :param maximum: Inclusive upper bound.
-    :return: ``value``, unchanged.
-    :raises ValueError: If ``value`` is outside ``[minimum, maximum]``.
-    """
-    if not (minimum <= value <= maximum):
-        raise ValueError(f"{name} must be between {minimum} and {maximum}, got {value}")
-    return value
-
-
-def require_query(q: str) -> str:
-    """Validate a natural-language query string.
-
-    :param q: The raw query.
-    :return: ``q`` stripped of leading/trailing whitespace.
-    :raises ValueError: If empty, whitespace-only, or longer than
-        :data:`MAX_QUERY_LEN`.
-    """
-    stripped = q.strip()
-    if not stripped:
-        raise ValueError("q must not be empty")
-    if len(stripped) > MAX_QUERY_LEN:
-        raise ValueError(f"q must be at most {MAX_QUERY_LEN} characters, got {len(stripped)}")
-    return stripped
