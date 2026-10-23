@@ -118,15 +118,24 @@ gets unreadable well below that ceiling.
 genkg quilt I1                          # render a Looking Glass quilt to renders/
 genkg quilt I1 --cast                   # ...and push it to Looking Glass Bridge
 genkg viz3d I1                          # open an interactive orbit/zoom/pan viewer
+genkg quilt I1 --ancestors 3 --descendants 2   # fewer generations each way
+genkg quilt I1 --shape canopy           # the older descent-only tree
 ```
 
-Both grow `xref`'s descent line as a real 3-D tree via space colonization
-(the canopy's shape *is* the data, not an L-system): `xref` plus every
-spouse as the trunk, each family a limb, each person a leaf clustered
-around their birth family's limb tip. `xref`'s *ancestors* are not grown --
-a GEDCOM can hold several unrelated lines with no single well-defined
-progenitor to auto-detect. Pass `--schematic` for the cheap straight-line
-layout instead of organic growth. `XREF` can be omitted if
+By default both draw `xref`'s **hourglass**. `xref` and their spouse(s)
+are the trunk at ground level. Ancestors are the roots below the ground
+plane: parents one tier down, grandparents two, and so on. Descendants are
+the canopy above it: children one tier up, grandchildren two. Every limb is
+a kinship edge, so a child's wood branches from its parent and a parent's
+root from its child. `--ancestors` (default 5) and `--descendants`
+(default 4) cap the generations drawn; spouses of the last descendant
+generation are still drawn. Without a cap, a file that traces one line
+back to legendary kings draws a long single-file chain.
+
+`--shape canopy` draws the older descent-only tree instead: `xref` plus
+every descendant and married-in spouse, grown by space colonization, with
+no ancestors. Pass `--schematic` with either shape for the cheap
+straight-line layout instead of organic wood. `XREF` can be omitted if
 `[tool.genealogykg] default_xref` is set in `pyproject.toml`.
 
 `quilt` needs `pyvista`+`quiltwright`; `viz3d` additionally needs

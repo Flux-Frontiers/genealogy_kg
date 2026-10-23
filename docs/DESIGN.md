@@ -216,7 +216,7 @@ src/genealogy_kg/
     cmd_status.py   status
     cmd_snapshot.py snapshot save|list|show|diff
     cmd_hooks.py    install-hooks
-    cmd_viz.py      viz (--view pedigree|network); quilt, viz3d (both --schematic)
+    cmd_viz.py      viz (--view pedigree|network); quilt, viz3d (--shape, --schematic)
 ```
 
 Storage: `.genealogykg/graph.sqlite`, `.genealogykg/vectors.sqlite`,
@@ -487,6 +487,35 @@ then grows wood toward -- the same relationship `gutenberg_kg`'s
 glyphs differ.
 
 26 new tests (134 total).
+
+### The hourglass
+
+The descent-only tree above has two problems, both visible on the Kennedy
+file. Ancestors are absent, though a GEDCOM is mostly ancestry. And the
+wood does not follow the kinship edge: colonization grows toward people
+from whatever wood is nearest, so the limb that reaches a child need not
+branch from the parent.
+
+`hourglass.py` replaces it as the default shape. The focal person and
+spouse(s) are the trunk at ground level; ancestors are roots below,
+descendants canopy above. It is a layout, not a growth: the canopy is a
+radial tidy tree (a person's wedge split among families and children by
+descendant weight), the roots a fan chart (a person's wedge halved between
+their parents). The wood graph *is* the kinship graph, one node per person
+and one edge per parent-to-child link, with married-in spouses as short
+twigs off their partner's node. Organic mode curves each edge
+(`curved_wood`) and sweeps it with the shared `pipe_radii`/`tree_mesh`, so
+a limb is exactly as thick as the family it carries. No `kg_utils` change
+was needed: a `Skeleton` is points plus a parent index, and the hourglass
+builds one directly.
+
+The ancestor walk is backward-only (`CHILD_IN` to the birth family, then
+its spouses), never `generation_depths`, which is bidirectional and would
+pull every aunt and great-uncle into the roots. Pedigree collapse (cousins
+marrying) places a shared ancestor once and counts the second edge in
+`skipped_edges`. Both halves are depth-capped (5 ancestor and 4 descendant
+generations by default) because royal92 runs 70 generations above Victoria,
+almost all single-file, and uncapped that chain is all the picture shows.
 
 ## Not in scope
 

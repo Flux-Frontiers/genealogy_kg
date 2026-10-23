@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **The hourglass family tree** (`genealogy_kg.hourglass`), now the default
+  shape for `genkg quilt` and `genkg viz3d`. The focal person and spouse(s)
+  are the trunk at ground level, ancestors the roots below, descendants the
+  canopy above. Every limb is a kinship edge. `--ancestors` (default 5) and
+  `--descendants` (default 4) cap the generations drawn.
+- `--shape hourglass|canopy` on `quilt` and `viz3d`; `shape`,
+  `max_ancestors` and `max_descendants` on `scene.build_family_tree_scene`.
+
+### Changed
+
+- `genkg quilt` and `genkg viz3d` draw the hourglass by default. Pass
+  `--shape canopy` for the previous descent-only tree. The library's
+  `build_family_tree_scene` still defaults to `shape="canopy"`.
+
 ## [0.2.2] - 2026-09-29
 
 ### Removed
