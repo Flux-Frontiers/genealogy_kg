@@ -1,20 +1,51 @@
-# Release Notes -- v0.2.2
+# Release Notes -- v0.3.0
 
-> Released: 2026-09-29
+> Released: 2026-10-23
 
-This release moves input validation into the shared SDK and raises the fleet dependency floors to the latest releases. Query and pack inputs are checked more strictly than before; nothing else changes for users.
+This release changes how GenealogyKG draws a family in 3-D, and adds two
+exports that hand a family to The Knowledge Press: The Family, the edition of
+the Knowledge Press apps that reads a GenealogyKG store. Both exports enforce
+the living-person filter rather than trust it.
 
 ## What changed
 
-**Validation comes from kgmodule-utils.** `bounded_int` and `require_query` were this package's own reference implementations, and kgmodule-utils has taken both over. `query()` and `pack()` no longer validate themselves. The base class does, against limits this package sets as class attributes. The overrides that remain exist only for the genealogy edge defaults and living-person redaction. The SDK's integer check is stricter: a bool, a non-integral float or a string for `k`, `hop` or `max_nodes` now raises `ValueError`, where the old copy let `True` and `2.5` through and failed on `"5"` with a raw `TypeError`.
+**The hourglass family tree.** `genkg quilt` and `genkg viz3d` now draw a
+person's whole kinship line by default. The person and their spouse(s) are the
+trunk at ground level. Ancestors are the roots below the ground, doubling each
+generation, and descendants are the canopy above. Every limb is a kinship edge:
+a child's wood branches from its parent and a parent's root from its child, so
+the wood is the family rather than decoration grown near it. `--ancestors` and
+`--descendants` cap the generations drawn (5 and 4 by default), because a file
+that traces one line back to legendary kings otherwise draws a long
+single-file chain. `--shape canopy` keeps the previous descent-only tree.
 
-**Redundant workarounds removed.** The `__enter__` override existed only to keep the `GenealogyKG` type across a `with` block. kgmodule-utils 0.23.0 returns `Self`, so it is gone and `ty` stays clean.
+**`genkg export-web`.** Writes the web orchard's data: a catalog of every
+family line, person, family, cross-line marriage and place, and one page per
+person with their events, relatives and GEDCOM record lines. A line is a
+surname by birth, joined by descent, so every person belongs to exactly one,
+and a marriage between two lines becomes a link between their trees.
 
-**Dependency floors.** `kgmodule-utils` is now `>=0.26.0`, `quiltwright` `>=0.16.0` and `kg-rag` `>=0.17.0`, with the lock refreshed. The `mcp` floor is `>=1.3.0`, the first release whose `FastMCP` accepts the `instructions=` and `lifespan=` arguments `genkg-mcp` passes. The repo-tooling `kg` Poetry group is retired, since `doc-kg` and `pycode-kg` are installed as global tools.
+**`genkg export-swift`.** Writes the family app's on-device search pack: one
+passage per person, family, event, place and source, the store's own vectors
+re-encoded for the device, a manifest and golden reference rankings. The format
+comes from the new `kg_utils.devicepack` in kgmodule-utils 0.28.0, shared with
+gutenberg_kg's book packs.
+
+**Privacy that does not trust the store.** Each export re-reads the GEDCOM
+under its own living-person cutoff and refuses a store that was not redacted to
+match. After writing, it scans its own output for living people's names and
+refuses again on a hit, naming the record to fix, so a note in a dead
+relative's record that names a living child stops the export instead of
+shipping. Nothing is written when an export refuses.
 
 ## Upgrading
 
-`pip install -U genealogy-kg`. If your code passes non-integer values for `k`, `hop` or `max_nodes`, expect a `ValueError`. No config or graph rebuild is needed.
+Install 0.3.0; it requires kgmodule-utils 0.28.0. No rebuild is needed for
+search or lineage. To use the exports, set `living_cutoff_years` (and
+preferably `unknown_birth_policy = "redact"`) and rebuild, or pass
+`--include-living` for a private copy. Scripts that relied on the descent-only
+3-D tree should pass `--shape canopy`; the library's
+`build_family_tree_scene` still defaults to it.
 
 ---
 

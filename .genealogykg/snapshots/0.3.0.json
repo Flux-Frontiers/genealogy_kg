@@ -1,0 +1,58 @@
+{
+  "key": "0.3.0",
+  "branch": "main",
+  "timestamp": "2026-10-23T17:23:04.609666+00:00",
+  "version": "0.3.0",
+  "subject": "repo:genealogy-kg",
+  "tool": "genealogy-kg",
+  "tool_version": "0.3.0",
+  "tree_hash": "ed1c1fe121bf584df58d2686d2b0b2be3d4ff18e",
+  "metrics": {
+    "total_nodes": 60,
+    "total_edges": 100,
+    "node_counts": {
+      "event": 29,
+      "family": 4,
+      "person": 12,
+      "place": 13,
+      "source": 2
+    },
+    "edge_counts": {
+      "CHILD_IN": 7,
+      "CITES": 5,
+      "HAS_EVENT": 29,
+      "MARRIED_TO": 4,
+      "OCCURRED_AT": 24,
+      "PARENT_OF": 14,
+      "SPOUSE_IN": 8,
+      "WITHIN": 9
+    },
+    "people": 12,
+    "families": 4,
+    "events": 29,
+    "places": 13,
+    "sources": 2,
+    "generation_depth": 4,
+    "surname_count": 5,
+    "unlinked_people": 0,
+    "living_redacted": 0
+  },
+  "hotspots": [],
+  "issues": [],
+  "vs_previous": {
+    "nodes": 0,
+    "edges": 0,
+    "people": 0,
+    "families": 0,
+    "events": 0,
+    "places": 0
+  },
+  "vs_baseline": {
+    "nodes": 0,
+    "edges": 0,
+    "people": 0,
+    "families": 0,
+    "events": 0,
+    "places": 0
+  }
+}
