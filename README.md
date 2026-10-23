@@ -31,7 +31,10 @@ living-person privacy model, with real examples.
 > genres) with `genkg corpus survey`/`ingest` to build and register it;
 > bounded, normalized CLI and MCP inputs; deterministic resource cleanup and
 > an MCP shutdown hook; a full MCP behavioral test suite and an enforced
-> coverage floor; and field parity with kg-rag's own federation adapter. See
+> coverage floor; and field parity with kg-rag's own federation adapter.
+> 0.3.0 adds the hourglass 3-D tree (ancestors as roots, descendants as
+> canopy, every limb a kinship edge) and `export-web`/`export-swift`, the
+> data files The Knowledge Press: The Family reads. See
 > [docs/DESIGN.md](docs/DESIGN.md) for the phased build history.
 
 ## Overview
@@ -72,6 +75,16 @@ genkg descendants I1
 # Family trees as self-contained HTML (needs the `viz` extra)
 genkg viz I1 --output tree.html
 genkg viz I1 --view network --color-by generation --output family.html
+
+# A 3-D family tree: ancestors as roots below the ground, descendants as the
+# canopy above (needs the `viz3d` extra)
+genkg viz3d I7
+genkg quilt I7 --ancestors 3 --descendants 2
+
+# Data files for The Knowledge Press: The Family. Both refuse unless the store
+# was built with the living-person filter on (see "Living people" below).
+genkg export-web --out family-web --living-cutoff 100
+genkg export-swift --out family-swift --living-cutoff 100 --embedder-from <dir>
 
 # Generation depth, surnames, date coverage, people with no family links
 genkg analyze
@@ -154,6 +167,16 @@ affirmative evidence that the person is not living.
 
 `pack` reads the GEDCOM file in place, so share the `.genealogykg/` store
 without the `.ged` file.
+
+`export-web` and `export-swift` never trust the store. Each re-reads the
+GEDCOM under its own cutoff (`--living-cutoff`, default the pyproject value;
+`--unknown-birth` defaults to `redact`) and refuses if the store holds anyone
+that cutoff treats as living under anything but `Living`. After writing, each
+scans its own output for those people's real names and refuses again on a
+hit, so a note in a dead relative's record that names a living child stops
+the export instead of shipping. A name a dead ancestor also bears cannot be
+scanned for, since the ancestor's own page carries it. `--include-living`
+skips both checks, for a private copy only, and is recorded in the output.
 
 ### Git hook
 
