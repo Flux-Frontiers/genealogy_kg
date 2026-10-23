@@ -141,6 +141,61 @@ straight-line layout instead of organic wood. `XREF` can be omitted if
 `quilt` needs `pyvista`+`quiltwright`; `viz3d` additionally needs
 `PyQt5`+`pyvistaqt` for the interactive window.
 
+## Exports for The Knowledge Press: The Family
+
+The Family (`kpress_family`) reads a family as files, not through this
+package. Two commands write them:
+
+```bash
+genkg export-web --out family-web --living-cutoff 100
+genkg export-swift --out family-swift --living-cutoff 100 \
+    --embedder-from ../gutenberg_kg/bundles/gutenberg-all/swift --verify
+```
+
+**`export-web`** writes the web orchard's data:
+
+- `catalog.json`: every line, person, family, cross-line marriage and place.
+  A *line* is a surname by birth: the people born with that surname, joined
+  by parent-to-child edges, from its earliest recorded member, with an id
+  such as `hartwell-I1`. A spouse who married in belongs to their own birth
+  line, so a marriage between two lines is a `links` entry (the orchard's
+  marriage roads). A person with no surname, a redacted living person among
+  them, takes a parent's line, the father first; anyone left over is in the
+  `unknown` line. Places carry their `WITHIN` parent and an event count.
+- `people/<xref>.json`: each person's page for the record reader: the prose
+  summary, events in date order with places, parents, spouses, children, and
+  the GEDCOM record lines with line numbers.
+- `species.json`: the tree-species table from `kg_utils.viz3d.species`.
+
+**`export-swift`** writes the on-device search pack, in the format the
+Knowledge Press Swift kit reads (`kg_utils.devicepack`):
+
+- `family.pack`: one passage per person, family, event, place and source,
+  with an FTS5 index. `genre` is the line, so the app's scope picker is a
+  line picker; `author` is the surname; an event's `title` is its owner and
+  its `timestamp` its date. A person's or family's content is the prose
+  summary followed by the GEDCOM record lines. Living people are left out.
+- `family.vectors`: the store's own vectors, re-encoded to int8 (`--dtype
+  float` keeps them exact). No re-embedding: the store and the app's Core ML
+  embedder are both `BAAI/bge-small-en-v1.5`.
+- `manifest.json` (with the privacy settings) and `golden.json`, the
+  reference rankings the app's search must reproduce.
+- `--embedder-from <dir>` copies in `BGEEmbedder.mlpackage`, `vocab.txt` and
+  `embedder.json` (as `gutenkg export-embedder` writes them) and refuses an
+  embedder converted from another model. Without it the app cannot open the
+  pack; embedder files already in `--out` are kept across a `--force` rerun.
+- `--verify` reports the sidecar's dense recall@10 against the store. On a
+  family it runs lower than on books (0.875 on the Kennedy file) because many
+  passages are near-duplicates ("Occupation ...", "Birth ... in Boston"): every
+  miss there was within 0.003 cosine of the 10th hit, a tie int8 rounding
+  reorders. `golden.json`'s tolerances allow for it.
+
+Both commands require the living-person filter: the store must have been
+built with at least the export's cutoff, and each export scans its own output
+for living people's names before it is moved into place. See "Living-person
+privacy" below. `--force` replaces an earlier export, never a directory that
+is not one.
+
 ## Analysis and status
 
 ```bash
@@ -226,6 +281,9 @@ living, regardless of policy.
 store built with redaction on can be shared *without* the `.ged` file --
 and should be, since the redaction guarantee depends on the source file
 being unreachable to whoever receives the store.
+
+`export-web` and `export-swift` re-check this rather than trust it: see
+"Exports for The Knowledge Press: The Family" above.
 
 ## MCP server
 

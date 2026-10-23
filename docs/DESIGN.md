@@ -517,6 +517,29 @@ marrying) places a shared ancestor once and counts the second edge in
 generations by default) because royal92 runs 70 generations above Victoria,
 almost all single-file, and uncapped that chain is all the picture shows.
 
+### Exports for The Family
+
+`export.py` and `export_swift.py` write the files `kpress_family` reads:
+`export-web` the orchard's JSON, `export-swift` the on-device search pack. The
+pack format lives in `kg_utils.devicepack` (kgmodule-utils 0.28.0), lifted out
+of gutenberg_kg's `export-swift` so both KGs write one format;
+`search_pack` there reproduced all 24 of gutenberg_kg's golden rankings.
+
+The privacy gate is the design's center. Redaction happens at build time and
+the store does not record its cutoff, so an export re-reads the GEDCOM under
+its own cutoff and checks that everyone it treats as living is only a
+`Living` placeholder in the store; a store built looser fails. It then scans
+everything it wrote for those people's real names before moving the output
+into place. A name someone not living also bears is excluded from the scan:
+the Kennedy file has a living Patrick Joseph Kennedy whose grandfather's page
+must carry the same name. That is the gate's one blind spot, a note naming a
+living namesake of an ancestor, and it is documented rather than guessed at.
+
+Lines (`assign_lines`) are surnames by birth joined by descent, so every
+person is in one line and the pack's single `genre` column can scope by
+line. Surnames with no letters (`(-----)`, an unrecorded maiden name) group
+nobody. Families take the husband's line in the pack.
+
 ## Not in scope
 
 - Writing or editing GEDCOM.

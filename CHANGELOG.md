@@ -16,12 +16,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `--descendants` (default 4) cap the generations drawn.
 - `--shape hourglass|canopy` on `quilt` and `viz3d`; `shape`,
   `max_ancestors` and `max_descendants` on `scene.build_family_tree_scene`.
+- **`genkg export-web`**: the web orchard's data for The Knowledge Press: The
+  Family. `catalog.json` (lines, people, families, cross-line marriages,
+  places), `people/<xref>.json` (each person's page with GEDCOM record
+  lines) and `species.json`.
+- **`genkg export-swift`**: the family app's on-device search pack
+  (`family.pack`, `family.vectors`, `manifest.json`, `golden.json`) in the
+  `kg_utils.devicepack` format, with `--verify` and `--embedder-from`.
+- Both exports require the living-person filter: each re-reads the GEDCOM
+  under its own cutoff, refuses a store that is not redacted to match, and
+  scans its own output for living people's names before writing anything.
 
 ### Changed
 
 - `genkg quilt` and `genkg viz3d` draw the hourglass by default. Pass
   `--shape canopy` for the previous descent-only tree. The library's
   `build_family_tree_scene` still defaults to `shape="canopy"`.
+- `kgmodule-utils` floor raised to 0.28.0 for `kg_utils.devicepack` and
+  `SqliteVecBackend.iter_vectors()`, which `export-swift` uses. Relocked onto
+  kg-rag 0.17.2.
 
 ## [0.2.2] - 2026-09-29
 
