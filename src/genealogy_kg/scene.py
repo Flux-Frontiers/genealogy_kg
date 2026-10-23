@@ -46,6 +46,13 @@ from kg_utils.viz3d import (
     seed_from_key,
 )
 
+from genealogy_kg.hourglass import (
+    DEFAULT_ANCESTOR_GENERATIONS,
+    DEFAULT_DESCENDANT_GENERATIONS,
+    HourglassPositions,
+    curved_wood,
+    hourglass_positions,
+)
 from genealogy_kg.theme import GENERATION_COLOR, SEX_COLOR, generation_depths, sex_kind
 
 if TYPE_CHECKING:
@@ -353,7 +360,10 @@ class TreeGeometry:
 
     :param skeleton: The grown skeleton; ``None`` in schematic mode, which
         never grows one. Its radii report limb load when present.
-    :param positions: :class:`FamilyTreePositions` this scene was grown from.
+    :param positions: The layout this scene was grown from:
+        :class:`FamilyTreePositions` for ``shape="canopy"``,
+        :class:`~genealogy_kg.hourglass.HourglassPositions` for
+        ``shape="hourglass"``.
     :param leaf_tint: Per-person scalar array carried onto the foliage/point
         glyphs.
     :param title: Human-readable summary for a window title or CLI echo.
@@ -361,11 +371,12 @@ class TreeGeometry:
         :func:`~kg_utils.viz3d.frame_tree` regardless of mode -- the grown
         wood's points in organic mode, person and family positions in
         schematic mode.
-    :param counts: ``{"person": n, "family": n}``.
+    :param counts: ``{"person": n, "family": n}`` for the canopy,
+        ``{"person": n, "ancestor": n, "descendant": n}`` for the hourglass.
     """
 
     skeleton: Skeleton | None
-    positions: FamilyTreePositions
+    positions: FamilyTreePositions | HourglassPositions
     leaf_tint: np.ndarray
     title: str
     points: np.ndarray
@@ -439,8 +450,11 @@ def build_family_tree_scene(
     leaf_size: float = 0.35,
     tropism: tuple[float, float, float] | None = None,
     organic: bool = True,
+    shape: str = "canopy",
+    max_ancestors: int | None = DEFAULT_ANCESTOR_GENERATIONS,
+    max_descendants: int | None = DEFAULT_DESCENDANT_GENERATIONS,
 ) -> TreeGeometry:
-    """Compose ``xref``'s descent line into *plotter* as a single tree.
+    """Compose ``xref``'s family into *plotter* as a single tree.
 
     :param store: The graph store.
     :param plotter: PyVista plotter to compose into; cleared first.
@@ -461,8 +475,35 @@ def build_family_tree_scene(
         that :func:`build_family_tree_scene` (organic) then grows wood toward
         -- the same relationship ``gutenberg_kg``'s ``--schematic`` flag has
         to its own organic render.
+    :param shape: ``"canopy"`` (default) grows ``xref``'s descent line by
+        space colonization, ``xref`` at the base. ``"hourglass"`` draws
+        ``xref``'s ancestors as roots below the ground plane and
+        descendants as canopy above it, one limb per kinship edge -- see
+        :mod:`genealogy_kg.hourglass`. *tropism* is ignored there, since no
+        colonization runs.
+    :param max_ancestors: Hourglass only: ancestor generations drawn, or
+        ``None`` for all.
+    :param max_descendants: Hourglass only: descendant generations drawn, or
+        ``None`` for all.
     :return: The composed :class:`TreeGeometry`.
+    :raises ValueError: On an unknown *shape* or *color_by*, or an ``xref``
+        with nothing to grow toward.
     """
+    if shape == "hourglass":
+        return _build_hourglass_scene(
+            store,
+            plotter,
+            xref,
+            color_by=color_by,
+            tip_radius=tip_radius,
+            leaf_size=leaf_size,
+            organic=organic,
+            max_ancestors=max_ancestors,
+            max_descendants=max_descendants,
+        )
+    if shape != "canopy":
+        raise ValueError(f"shape must be 'canopy' or 'hourglass', got {shape!r}")
+
     import pyvista as pv  # noqa: PLC0415 - the viz3d-only import boundary
     from matplotlib.colors import ListedColormap  # noqa: PLC0415 - arrives with pyvista
 
@@ -577,6 +618,147 @@ def build_family_tree_scene(
         title=title,
         points=points,
         counts={"person": len(person_ids), "family": n_families},
+    )
+
+
+#: Ground plane color and opacity for the hourglass: faint enough that the
+#: roots read through it, there enough that "above" and "below" read at all.
+GROUND_COLOR: Final[str] = "#6B8E5A"
+GROUND_OPACITY: Final[float] = 0.18
+
+
+def _build_hourglass_scene(
+    store: GraphStore,
+    plotter: pv.Plotter,
+    xref: str,
+    *,
+    color_by: str,
+    tip_radius: float,
+    leaf_size: float,
+    organic: bool,
+    max_ancestors: int | None,
+    max_descendants: int | None,
+) -> TreeGeometry:
+    """Compose ``xref``'s hourglass into *plotter*.
+
+    The wood is the kinship graph from
+    :func:`~genealogy_kg.hourglass.hourglass_positions`, not a colonized
+    skeleton: organic mode curves each edge with
+    :func:`~genealogy_kg.hourglass.curved_wood` and sweeps it with the
+    shared pipe model, so a limb is exactly as thick as the family it
+    carries; schematic mode draws the same edges straight.
+
+    :param store: The graph store.
+    :param plotter: PyVista plotter to compose into; cleared first.
+    :param xref: The focal person's xref without ``@``.
+    :param color_by: ``"sex"`` or ``"generation"``.
+    :param tip_radius: Radius of the finest wood, world units.
+    :param leaf_size: Leaf glyph radius before density scaling.
+    :param organic: Curved swept wood if ``True``, straight tubes if not.
+    :param max_ancestors: Ancestor generations drawn, or ``None`` for all.
+    :param max_descendants: Descendant generations drawn, or ``None`` for all.
+    :return: The composed :class:`TreeGeometry`.
+    """
+    import pyvista as pv  # noqa: PLC0415 - the viz3d-only import boundary
+    from kg_utils.viz3d import leaf_glyphs, pipe_radii, tree_mesh  # noqa: PLC0415
+    from matplotlib.colors import ListedColormap  # noqa: PLC0415 - arrives with pyvista
+
+    positions = hourglass_positions(
+        store, xref, max_ancestors=max_ancestors, max_descendants=max_descendants
+    )
+    tip_radius = tip_radius * positions.size_scale
+    leaf_size = leaf_size * positions.size_scale
+
+    person_ids = list(positions.person_positions)
+    leaf_points = np.array([positions.person_positions[pid] for pid in person_ids])
+    tint, palette = _leaf_tint(store, person_ids, color_by=color_by, depths=positions.generation)
+    cmap = ListedColormap(palette)
+    clim = [-0.5, len(palette) - 0.5]
+
+    plotter.clear_actors()
+    plotter.enable_anti_aliasing("msaa")
+
+    skeleton: Skeleton | None = None
+    if organic:
+        wood_points, wood_parents = curved_wood(positions, key=xref)
+        skeleton = Skeleton(points=wood_points, parents=wood_parents)
+        pipe_radii(skeleton, tip_radius=tip_radius)
+        kids = skeleton.children()
+        skeleton.tips = [i for i in range(skeleton.n_nodes) if i not in kids]
+        wood = tree_mesh(skeleton)
+        if wood.n_points:
+            plotter.add_mesh(wood, color="#5A3A22", smooth_shading=True, name="wood")
+        leaves = leaf_glyphs(
+            leaf_points,
+            skeleton,
+            size=leaf_size,
+            tint=tint,
+            seed=seed_from_key(f"{xref}:leaves"),
+        )
+        if leaves.n_points:
+            plotter.add_mesh(
+                leaves, scalars="tint", cmap=cmap, clim=clim, show_scalar_bar=False, name="leaves"
+            )
+        points = skeleton.points
+    else:
+        trunk = pv.Cylinder(
+            center=(0.0, 0.0, positions.trunk_height / 2.0),
+            direction=(0.0, 0.0, 1.0),
+            radius=max(tip_radius * 4.0, 0.02),
+            height=positions.trunk_height,
+            resolution=12,
+        )
+        plotter.add_mesh(trunk, color="#5A3A22", smooth_shading=True, name="wood")
+        wp, parents = positions.wood_points, positions.wood_parents
+        # Index 1 is the focal person at the trunk top; the trunk cylinder
+        # already draws the edge from the ground point to it.
+        segments = [(wp[parents[i]], wp[i]) for i in range(2, len(wp))]
+        branches = _line_mesh(segments)
+        if branches.n_points:
+            tubes = branches.tube(radius=max(tip_radius * 0.6, 0.01), n_sides=8)
+            plotter.add_mesh(tubes, color="#8A6A4A", smooth_shading=True, name="branches")
+        people = pv.PolyData(leaf_points)
+        people.point_data["tint"] = tint
+        sphere = pv.Sphere(radius=leaf_size, theta_resolution=16, phi_resolution=16)
+        glyphs = people.glyph(geom=sphere, orient=False, scale=False)
+        plotter.add_mesh(
+            glyphs,
+            scalars="tint",
+            cmap=cmap,
+            clim=clim,
+            show_scalar_bar=False,
+            smooth_shading=True,
+            name="leaves",
+        )
+        points = wp
+
+    reach = float(np.max(np.linalg.norm(points[:, :2], axis=1), initial=1.0))
+    ground = pv.Disc(
+        center=(0.0, 0.0, 0.0), inner=0.0, outer=reach * 1.1, normal=(0, 0, 1), c_res=64
+    )
+    plotter.add_mesh(ground, color=GROUND_COLOR, opacity=GROUND_OPACITY, name="ground")
+
+    root_node = store.node(positions.root_id) or {}
+    root_name = root_node.get("name") or xref
+    mode = "organic" if organic else "schematic"
+    generations = positions.generation.values()
+    title = (
+        f"{root_name}'s hourglass ({mode}) | ancestors={positions.n_ancestors}  "
+        f"descendants={positions.n_descendants}  "
+        f"generations={min(generations, default=0)}..+{max(generations, default=0)}"
+    )
+
+    return TreeGeometry(
+        skeleton=skeleton,
+        positions=positions,
+        leaf_tint=tint,
+        title=title,
+        points=points,
+        counts={
+            "person": len(person_ids),
+            "ancestor": positions.n_ancestors,
+            "descendant": positions.n_descendants,
+        },
     )
 
 

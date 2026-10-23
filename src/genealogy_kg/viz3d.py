@@ -42,6 +42,10 @@ class FamilyTreeWindow(QMainWindow):
     :param organic: ``True`` (default) grows real wood; ``False`` draws the
         cheap straight-line schematic instead -- see
         :func:`genealogy_kg.scene.build_family_tree_scene`.
+    :param shape: ``"hourglass"`` or ``"canopy"``; see
+        :func:`genealogy_kg.scene.build_family_tree_scene`.
+    :param max_ancestors: Hourglass ancestor generations, ``None`` for all.
+    :param max_descendants: Hourglass descendant generations, ``None`` for all.
     """
 
     def __init__(
@@ -52,6 +56,9 @@ class FamilyTreeWindow(QMainWindow):
         color_by: str = "generation",
         preset: str = DEFAULT_QUILT_PRESET,
         organic: bool = True,
+        shape: str = "hourglass",
+        max_ancestors: int | None = 5,
+        max_descendants: int | None = 4,
     ) -> None:
         super().__init__()
         self._store = store
@@ -59,12 +66,22 @@ class FamilyTreeWindow(QMainWindow):
         self._color_by = color_by
         self._preset = preset
         self._organic = organic
+        self._shape = shape
+        self._max_ancestors = max_ancestors
+        self._max_descendants = max_descendants
 
         self.plotter = QtInteractor(self)
         self.setCentralWidget(self.plotter)
 
         tree = render3d.build_family_tree_scene(
-            store, self.plotter, xref, color_by=color_by, organic=organic
+            store,
+            self.plotter,
+            xref,
+            color_by=color_by,
+            organic=organic,
+            shape=shape,
+            max_ancestors=max_ancestors,
+            max_descendants=max_descendants,
         )
         self.setWindowTitle(f"GenealogyKG viz3d -- {tree.title}")
 
@@ -85,12 +102,20 @@ class FamilyTreeWindow(QMainWindow):
         from quiltwright import QUILT_PRESETS  # noqa: PLC0415 - viz3d-only import
 
         spec = QUILT_PRESETS[self._preset]
-        xref, color_by, organic = self._xref, self._color_by, self._organic
+        xref, color_by, organic, shape = self._xref, self._color_by, self._organic, self._shape
         store = self._store
+        max_ancestors, max_descendants = self._max_ancestors, self._max_descendants
 
         def build(plotter) -> None:
             render3d.build_family_tree_scene(
-                store, plotter, xref, color_by=color_by, organic=organic
+                store,
+                plotter,
+                xref,
+                color_by=color_by,
+                organic=organic,
+                shape=shape,
+                max_ancestors=max_ancestors,
+                max_descendants=max_descendants,
             )
 
         result = cast_scene_to_looking_glass(
@@ -108,10 +133,13 @@ def launch(
     color_by: str = "generation",
     preset: str = DEFAULT_QUILT_PRESET,
     organic: bool = True,
+    shape: str = "hourglass",
+    max_ancestors: int | None = 5,
+    max_descendants: int | None = 4,
     width: int = 1400,
     height: int = 900,
 ) -> None:
-    """Open the interactive viewer for xref's grown descent line.
+    """Open the interactive viewer for xref's grown family tree.
 
     :param repo: Repository root; the store lives in ``<repo>/.genealogykg/``.
     :param db: SQLite graph path override, or ``None`` for the default.
@@ -120,15 +148,27 @@ def launch(
     :param preset: Quilt preset name for the Cast action.
     :param organic: ``True`` (default) grows real wood; ``False`` draws the
         cheap straight-line schematic instead.
+    :param shape: ``"hourglass"`` (default) or ``"canopy"``.
+    :param max_ancestors: Hourglass ancestor generations, ``None`` for all.
+    :param max_descendants: Hourglass descendant generations, ``None`` for all.
     :param width: Window width in pixels.
     :param height: Window height in pixels.
-    :raises ValueError: If xref has no descendants or spouses to grow toward.
+    :raises ValueError: If xref has no relatives to grow toward.
     """
     from PyQt5.QtWidgets import QApplication  # noqa: PLC0415 - viz3d-only import
 
     with GenealogyKG(repo_root=repo, db_path=db) as kg:
         app = QApplication.instance() or QApplication([])
-        window = FamilyTreeWindow(kg.store, xref, color_by=color_by, preset=preset, organic=organic)
+        window = FamilyTreeWindow(
+            kg.store,
+            xref,
+            color_by=color_by,
+            preset=preset,
+            organic=organic,
+            shape=shape,
+            max_ancestors=max_ancestors,
+            max_descendants=max_descendants,
+        )
         window.resize(width, height)
         window.show()
         app.exec_()

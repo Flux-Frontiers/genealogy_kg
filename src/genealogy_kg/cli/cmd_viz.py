@@ -217,6 +217,27 @@ preset_option = click.option(
     is_flag=True,
     help="Draw the straight-line schematic instead of growing organic wood.",
 )
+@click.option(
+    "--shape",
+    type=click.Choice(["hourglass", "canopy"]),
+    default="hourglass",
+    show_default=True,
+    help="hourglass: ancestors as roots, descendants as canopy. canopy: descendants only.",
+)
+@click.option(
+    "--ancestors",
+    default=5,
+    show_default=True,
+    type=click.IntRange(min=0),
+    help="Hourglass only: ancestor generations drawn below ground.",
+)
+@click.option(
+    "--descendants",
+    default=4,
+    show_default=True,
+    type=click.IntRange(min=0),
+    help="Hourglass only: descendant generations drawn above the trunk.",
+)
 def quilt(
     xref: str | None,
     repo: str,
@@ -230,14 +251,17 @@ def quilt(
     fov: float,
     cast: bool,
     schematic: bool,
+    shape: str,
+    ancestors: int,
+    descendants: int,
 ) -> None:
-    """Grow xref's descent line and render it as a Looking Glass quilt.
+    """Grow xref's family tree and render it as a Looking Glass quilt.
 
-    xref founds the tree -- their ancestors are not grown, since a GEDCOM can
-    hold several unrelated lines with no single well-defined "the"
-    progenitor to auto-detect. The tree is xref plus every descendant plus
-    every spouse who married in. XREF may be omitted if
-    [tool.genealogykg] default_xref is set in pyproject.toml.
+    With --shape hourglass (the default) xref and their spouse(s) are the
+    trunk at ground level, ancestors the roots below and descendants the
+    canopy above. With --shape canopy, xref founds a descent-only tree:
+    xref plus every descendant plus every spouse who married in. XREF may be
+    omitted if [tool.genealogykg] default_xref is set in pyproject.toml.
     """
     try:
         import pyvista as pv
@@ -273,6 +297,9 @@ def quilt(
                 tip_radius=tip_radius,
                 leaf_size=leaf_size,
                 organic=not schematic,
+                shape=shape,
+                max_ancestors=ancestors,
+                max_descendants=descendants,
             )
     except ValueError as exc:
         raise click.UsageError(str(exc)) from exc
@@ -323,6 +350,27 @@ def quilt(
     is_flag=True,
     help="Draw the straight-line schematic instead of growing organic wood.",
 )
+@click.option(
+    "--shape",
+    type=click.Choice(["hourglass", "canopy"]),
+    default="hourglass",
+    show_default=True,
+    help="hourglass: ancestors as roots, descendants as canopy. canopy: descendants only.",
+)
+@click.option(
+    "--ancestors",
+    default=5,
+    show_default=True,
+    type=click.IntRange(min=0),
+    help="Hourglass only: ancestor generations drawn below ground.",
+)
+@click.option(
+    "--descendants",
+    default=4,
+    show_default=True,
+    type=click.IntRange(min=0),
+    help="Hourglass only: descendant generations drawn above the trunk.",
+)
 def viz3d(
     xref: str | None,
     repo: str,
@@ -332,8 +380,11 @@ def viz3d(
     width: int,
     height: int,
     schematic: bool,
+    shape: str,
+    ancestors: int,
+    descendants: int,
 ) -> None:
-    """Launch an interactive 3-D viewer of xref's grown descent line.
+    """Launch an interactive 3-D viewer of xref's grown family tree.
 
     Orbit/zoom/pan with the mouse. The toolbar's "Cast to Looking Glass"
     button sends the current view to Bridge. XREF may be omitted if
@@ -357,6 +408,9 @@ def viz3d(
             color_by=color_by,
             preset=preset,
             organic=not schematic,
+            shape=shape,
+            max_ancestors=ancestors,
+            max_descendants=descendants,
             width=width,
             height=height,
         )
