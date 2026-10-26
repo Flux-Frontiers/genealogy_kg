@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import click
+from kg_utils.stats import flat_stats
 
 from genealogy_kg.cli.group import cli
 from genealogy_kg.cli.options import db_option, open_kg, repo_option
@@ -65,7 +66,7 @@ def _print_store_status(repo: str, db: str | None) -> None:
             click.echo(source_line)
             return
 
-        stats = kg.stats()
+        stats = flat_stats(kg.stats())
     click.echo(f"Store: {kg.db_path}")
     click.echo(source_line)
     click.echo(f"Nodes: {stats['total_nodes']}  Edges: {stats['total_edges']}")

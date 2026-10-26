@@ -22,6 +22,7 @@ from typing import Any
 from kg_rag.adapters.base import KGAdapter, node_metadata
 from kg_rag.primitives import CrossHit, CrossSnippet, KGEntry, KGKind, QueryScope
 from kg_rag.viz import DisplayMode, RenderBackend, Viewport
+from kg_utils.stats import flat_stats
 
 from genealogy_kg.module import GenealogyKG
 
@@ -177,7 +178,7 @@ class GenealogyKGAdapter(KGAdapter):
         if self.entry.sqlite_path and self.entry.sqlite_path.exists():
             db_size = round(self.entry.sqlite_path.stat().st_size / 1_048_576, 2)
         try:
-            s = self._kg.stats()
+            s = flat_stats(self._kg.stats())
             counts = s.get("node_counts", {})
             return {
                 "kind": "genealogy",
@@ -288,7 +289,7 @@ class GenealogyKGAdapter(KGAdapter):
         try:
             self._load()
             assert self._kg is not None
-            s = self._kg.stats()
+            s = flat_stats(self._kg.stats())
             counts = s.get("node_counts", {})
             return {
                 "total_nodes": s.get("total_nodes", 0),

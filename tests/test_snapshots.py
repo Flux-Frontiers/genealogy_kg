@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+from kg_utils.stats import flat_stats
 
 from genealogy_kg.module import GenealogyKG
 from genealogy_kg.snapshots import SnapshotManager
@@ -26,14 +27,15 @@ def test_capture_records_genealogy_metrics(corpus_root: Path) -> None:
     assert snap.metrics["families"] == 4
     assert snap.metrics["generation_depth"] == 4
     assert snap.metrics["surname_count"] == 5
-    assert snap.metrics["total_nodes"] == kg.stats()["total_nodes"]
+    assert snap.metrics["total_nodes"] == kg.stats()["nodes"]["total"]
     assert snap.version == "0.3.0"
 
 
 def test_save_list_and_diff_report_people_delta(corpus_root: Path) -> None:
     kg = _built(corpus_root)
     mgr = SnapshotManager(corpus_root / ".genealogykg" / "snapshots")
-    stats, analysis = kg.stats(), kg.analysis()
+    # The flat form, so the next "build" can bump one total; capture takes either.
+    stats, analysis = flat_stats(kg.stats()), kg.analysis()
 
     first = mgr.capture_genealogy(
         stats, analysis, version="0.3.0", branch="main", tree_hash="a" * 40, key="v0.3.0"

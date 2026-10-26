@@ -149,8 +149,8 @@ def render_report(data: dict[str, Any], stats: dict[str, Any]) -> str:
         f"- Events: {counts['event']}",
         f"- Places: {counts['place']}",
         f"- Sources: {counts['source']}",
-        f"- Total nodes: {stats.get('total_nodes', 0)}",
-        f"- Total edges: {stats.get('total_edges', 0)}",
+        f"- Total nodes: {stats['nodes']['total']}",
+        f"- Total edges: {stats['edges']['total']}",
         f"- Generation depth: {data['generation_depth']}",
     ]
     if data["living_redacted"]:

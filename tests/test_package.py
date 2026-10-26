@@ -40,17 +40,22 @@ def test_cli_registers_every_command() -> None:
     assert expected <= set(cli.commands)
 
 
-def test_mcp_server_imports_and_declares_tools() -> None:
+def test_mcp_server_imports_and_declares_tools(tmp_path: Path) -> None:
+    from kg_utils.mcp import manifest
+
     from genealogy_kg import mcp_server
 
-    names = {t.name for t in mcp_server.mcp._tool_manager.list_tools()}
+    names = {t["name"] for t in manifest(mcp_server.build_server(tmp_path))["tools"]}
     assert {
-        "query_genealogy",
-        "pack_genealogy",
+        "stats",
+        "query",
+        "pack",
+        "get_node",
+        "neighbors",
         "get_person",
         "ancestors",
         "descendants",
-        "graph_stats",
+        "family_tree",
         "analyze_genealogy",
     } <= names
 

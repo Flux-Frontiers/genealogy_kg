@@ -266,7 +266,7 @@ sex are kept so trees still walk through them, but name, dates, events,
 notes and citations are dropped, and the name is withheld from every
 family, spouse and parent mention too. A family with a living spouse keeps
 its members but not its marriage details. `pack()`'s own source-grounding
-is covered too -- no snippet returned by `pack`/`pack_genealogy` contains a
+is covered too -- no snippet returned by `pack` (CLI or MCP tool) contains a
 line from a redacted person's real GEDCOM record, even when a neighbor's
 context padding would otherwise run into it.
 
@@ -288,23 +288,29 @@ being unreachable to whoever receives the store.
 ## MCP server
 
 ```bash
-genkg-mcp --repo .                          # stdio transport (default)
-genkg-mcp --repo . --transport sse          # SSE, for a remote/networked client
+genkg mcp --repo .                                        # stdio transport (default)
+genkg mcp --repo . --transport streamable-http --port 8765  # HTTP, for a networked client
+genkg mcp --manifest                                      # the tools as JSON, no graph needed
 ```
 
-Exposes seven tools, all validated the same way the CLI is (bounded ranges,
-normalized `xref`, non-empty queries) -- a malformed call returns a clear
-tool error rather than a stack trace or silently-wrong result:
+`genkg-mcp` is the same command under its older name. The server is built
+on the fleet's shared base, `kg_utils.mcp`: the first five tools have the
+same names and arguments on every fleet KG server, then come GenealogyKG's
+own. All are validated the same way the CLI is (bounded ranges, normalized
+`xref`, non-empty queries) -- a malformed call returns a clear tool error
+rather than a stack trace or silently-wrong result:
 
 | Tool | Arguments | Returns |
 |---|---|---|
-| `query_genealogy` | `q`, `k` (1-100) | Ranked nodes as JSON |
-| `pack_genealogy` | `q`, `k` (1-100), `max_nodes` (1-500) | GEDCOM snippet pack (Markdown) |
+| `stats` | -- | Node and edge counts by kind and relation (the fleet stats shape) |
+| `query` | `q`, `k` (1-100), `hop` (0-5), `max_nodes`, `rels` | Ranked nodes and the edges among them |
+| `pack` | `q`, `k` (1-100), `hop`, `max_nodes` (1-500), `rels` | GEDCOM snippet pack (Markdown) |
+| `get_node` | `node_id` | One node by id (`person:I7`, `family:F1`) |
+| `neighbors` | `node_id`, `rels`, `direction`, `limit` | A node's edges and the nodes at their far ends |
 | `get_person` | `xref` | One person node as JSON, or `null` |
 | `ancestors` | `xref`, `generations` (1-50) | Ancestors, nearest generation first (JSON) |
 | `descendants` | `xref`, `generations` (1-50) | Descendants, nearest generation first (JSON) |
 | `family_tree` | `xref`, `direction`, `generations` (1-50) | ASCII tree (plain text) |
-| `graph_stats` | -- | Node/edge counts as JSON |
 | `analyze_genealogy` | -- | Markdown analysis report |
 
 Configure it in an MCP client (e.g. Claude Code's `.mcp.json`):
@@ -313,15 +319,21 @@ Configure it in an MCP client (e.g. Claude Code's `.mcp.json`):
 {
   "mcpServers": {
     "genealogykg": {
-      "command": "genkg-mcp",
-      "args": ["--repo", "/path/to/your/repo"]
+      "command": "genkg",
+      "args": ["mcp", "--repo", "/path/to/your/repo"]
     }
   }
 }
 ```
 
-The server closes its SQLite connection on shutdown via FastMCP's
-`lifespan` hook, on both the stdio and SSE transports.
+The server opens the graph when a session starts and closes it when the
+session ends, and refuses a repo with no built store rather than serving it
+empty. Living-person redaction holds on every tool: `query`, `get_node`,
+`neighbors` and the lineage tools read the redacted graph, and `pack`
+strips redacted records as described above. The cutoff is read from
+`[tool.genealogykg]` in the served repo's `pyproject.toml`. Before the port
+to `kg_utils.mcp`, `stats`, `query` and `pack` were `graph_stats`,
+`query_genealogy` and `pack_genealogy`.
 
 ## KGRAG federation
 

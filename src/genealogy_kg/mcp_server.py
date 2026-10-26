@@ -1,8 +1,35 @@
 #!/usr/bin/env python3
 """genealogy_kg/mcp_server.py
 
-GenealogyKG MCP server -- exposes the genealogy graph as Model Context
-Protocol tools.
+GenealogyKG MCP server -- serves the genealogy graph to any MCP-compatible
+agent over the fleet's shared server base, :mod:`kg_utils.mcp`.
+
+The server answers the fleet's canonical tools -- ``stats``, ``query``,
+``pack``, ``get_node``, ``neighbors`` -- under the same names as every other
+KG server, then GenealogyKG's own: ``get_person``, ``ancestors``,
+``descendants``, ``family_tree`` and ``analyze_genealogy``.
+
+Living-person privacy holds on every path. A living person is redacted when
+the graph is built (a bare ``Living`` node with no name, dates, events or
+source span), so ``query``, ``get_node``, ``neighbors`` and the lineage tools
+read only the redacted graph; ``pack`` goes through
+:meth:`~genealogy_kg.module.GenealogyKG.pack`, which also strips every line of
+a living person's real GEDCOM record from the snippets it returns.
+
+The tool list is not kept by hand anywhere: each tool's docstring is its
+description, the server's instructions are generated from them, and::
+
+    genkg mcp --manifest
+
+prints the whole list as JSON without opening the graph.
+
+Usage
+-----
+::
+
+    genkg mcp --repo /path/to/repo
+
+``genkg-mcp`` is the same command under its older name.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
@@ -10,93 +37,39 @@ License: Elastic 2.0
 
 from __future__ import annotations
 
-import argparse
 import json
-from collections.abc import AsyncIterator
-from contextlib import asynccontextmanager
 from pathlib import Path
+from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from kg_utils.mcp import Context, KGServer, kg_from, make_server
 
+from genealogy_kg import __version__
 from genealogy_kg.module import GenealogyKG
 
-_kg: GenealogyKG | None = None
-
-
-def _get_kg() -> GenealogyKG:
-    """Return the server's GenealogyKG instance.
-
-    :return: The instance built by :func:`main`.
-    :raises RuntimeError: If the server was imported without going through main().
-    """
-    if _kg is None:
-        raise RuntimeError("GenealogyKG not initialised. Run via 'genkg-mcp --repo PATH'")
-    return _kg
-
-
-@asynccontextmanager
-async def _lifespan(_server: FastMCP) -> AsyncIterator[None]:
-    """Close the graph's SQLite connection(s) when the server shuts down.
-
-    ``main()`` sets the module-level ``_kg`` before ``mcp.run()`` calls into
-    this, and both the stdio and SSE transports route through the same
-    underlying ``Server.run()``, so this fires on either one.
-    """
-    try:
-        yield
-    finally:
-        if _kg is not None:
-            _kg.close()
-
-
-mcp = FastMCP(
-    "genkg",
-    instructions=(
-        "GenealogyKG is a knowledge graph over a GEDCOM family-history file. "
-        "People, families, events, places and sources are nodes; lineage and "
-        "marriage are edges. Use query_genealogy for natural-language search, "
-        "pack_genealogy for the original GEDCOM records behind a query, and "
-        "ancestors/descendants to walk lineage from a person id such as I7."
-    ),
-    lifespan=_lifespan,
+PREAMBLE = (
+    "GenealogyKG is a knowledge graph over a GEDCOM family-history file. "
+    "People, families, events, places and sources are nodes; lineage and "
+    "marriage are edges. Person ids look like 'person:I7'. Living people are "
+    "redacted: their node is named 'Living' and carries no dates or events.\n\n"
+    "## Recommended workflows\n\n"
+    "- **Orientation**: stats, then analyze_genealogy\n"
+    "- **Find people**: query -> get_person or get_node\n"
+    "- **Read the records**: pack, the original GEDCOM records behind a query\n"
+    "- **Walk lineage**: ancestors / descendants / family_tree from a person id "
+    "such as I7; neighbors(node_id) for one node's families, events and places"
 )
 
 
-@mcp.tool()
-def query_genealogy(q: str, k: int = 8) -> str:
-    """Search the genealogy graph and return ranked nodes as JSON.
-
-    :param q: Natural-language query. Must be non-empty, at most 500 characters.
-    :param k: Maximum number of seed hits, 1-100.
-    :return: JSON-encoded QueryResult.
-    """
-    return _get_kg().query(q, k=k).to_json()
-
-
-@mcp.tool()
-def pack_genealogy(q: str, k: int = 8, max_nodes: int = 15) -> str:
-    """Return the GEDCOM records behind the nodes matching a query.
-
-    :param q: Natural-language query. Must be non-empty, at most 500 characters.
-    :param k: Number of seed hits, 1-100.
-    :param max_nodes: Maximum nodes in the pack, 1-500.
-    :return: Markdown snippet pack with line-numbered GEDCOM records.
-    """
-    return _get_kg().pack(q, k=k, max_nodes=max_nodes).to_markdown()
-
-
-@mcp.tool()
-def get_person(xref: str) -> str:
+def get_person(xref: str, ctx: Context) -> str:
     """Return one person node by GEDCOM xref.
 
     :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
     :return: JSON node dict, or ``null``.
     """
-    return json.dumps(_get_kg().person(xref), indent=2, ensure_ascii=False)
+    return json.dumps(kg_from(ctx).person(xref), indent=2, ensure_ascii=False)
 
 
-@mcp.tool()
-def ancestors(xref: str, generations: int = 4) -> str:
+def ancestors(xref: str, ctx: Context, generations: int = 4) -> str:
     """Return the ancestors of a person, nearest generation first.
 
     :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
@@ -104,14 +77,13 @@ def ancestors(xref: str, generations: int = 4) -> str:
     :return: JSON list of person nodes with a ``generation`` key.
     """
     return json.dumps(
-        _get_kg().ancestors(xref, generations=generations),
+        kg_from(ctx).ancestors(xref, generations=generations),
         indent=2,
         ensure_ascii=False,
     )
 
 
-@mcp.tool()
-def descendants(xref: str, generations: int = 4) -> str:
+def descendants(xref: str, ctx: Context, generations: int = 4) -> str:
     """Return the descendants of a person, nearest generation first.
 
     :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
@@ -119,14 +91,15 @@ def descendants(xref: str, generations: int = 4) -> str:
     :return: JSON list of person nodes with a ``generation`` key.
     """
     return json.dumps(
-        _get_kg().descendants(xref, generations=generations),
+        kg_from(ctx).descendants(xref, generations=generations),
         indent=2,
         ensure_ascii=False,
     )
 
 
-@mcp.tool()
-def family_tree(xref: str, direction: str = "descendants", generations: int = 4) -> str:
+def family_tree(
+    xref: str, ctx: Context, direction: str = "descendants", generations: int = 4
+) -> str:
     """Render an ASCII family tree rooted at a person.
 
     :param xref: Individual xref -- ``I7``, ``@I7@``, or ``person:I7``.
@@ -134,57 +107,57 @@ def family_tree(xref: str, direction: str = "descendants", generations: int = 4)
     :param generations: Maximum generations to walk, 1-50.
     :return: The rendered tree as plain text.
     """
-    return str(_get_kg().tree(xref, direction=direction, generations=generations))
+    return str(kg_from(ctx).tree(xref, direction=direction, generations=generations))
 
 
-@mcp.tool()
-def graph_stats() -> str:
-    """Return node and edge counts for the current store.
-
-    :return: JSON with total_nodes, total_edges, node_counts, edge_counts.
-    """
-    return json.dumps(_get_kg().stats(), indent=2, ensure_ascii=False)
-
-
-@mcp.tool()
-def analyze_genealogy() -> str:
+def analyze_genealogy(ctx: Context) -> str:
     """Return the Markdown analysis report for the graph.
 
     :return: Markdown text.
     """
-    return _get_kg().analyze()
+    return kg_from(ctx).analyze()
 
 
-def _parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    """Parse command-line arguments.
+#: Domain tools, registered after the canonical five in this order.
+EXTRA_TOOLS = (get_person, ancestors, descendants, family_tree, analyze_genealogy)
 
-    :param argv: Argument vector; defaults to ``sys.argv[1:]``.
-    :return: Parsed namespace.
+
+def build_server(
+    repo: str | Path,
+    db: str | Path | None = None,
+    vectors: str | Path | None = None,
+    model: str | None = None,
+) -> KGServer:
+    """Build the GenealogyKG MCP server for one repo, without opening its graph.
+
+    :param repo: Repository root containing ``.genealogykg/``.
+    :param db: Graph database; ``None`` for ``<repo>/.genealogykg/graph.sqlite``.
+    :param vectors: Vector store; ``None`` for the store beside the graph.
+    :param model: Embedding model; ``None`` for GenealogyKG's default.
+    :return: The server; serve it with :func:`kg_utils.mcp.run`.
     """
-    p = argparse.ArgumentParser(
-        prog="genkg-mcp",
-        description="GenealogyKG MCP server -- exposes genealogy graph tools to AI agents.",
+    root = Path(repo).resolve()
+    kwargs: dict[str, Any] = {"model": model} if model else {}
+
+    def open_kg() -> GenealogyKG:
+        return GenealogyKG(root, db, vectors, **kwargs)
+
+    server = make_server(
+        open_kg, name="genkg", kind="genealogy", version=__version__, instructions=PREAMBLE
     )
-    p.add_argument("--repo", default=".", help="Repository root containing .genealogykg/")
-    p.add_argument(
-        "--db", default=None, help="SQLite graph path (default: .genealogykg/graph.sqlite)"
-    )
-    p.add_argument("--vectors", default=None, help="sqlite-vec path (default: beside the graph)")
-    p.add_argument("--transport", choices=["stdio", "sse"], default="stdio")
-    return p.parse_args(argv)
+    for fn in EXTRA_TOOLS:
+        server.tool()(fn)
+    return server
 
 
 def main(argv: list[str] | None = None) -> None:
-    """Start the MCP server.
+    """Entry point for ``genkg-mcp``: the same command as ``genkg mcp``.
 
-    :param argv: Argument vector; defaults to ``sys.argv[1:]``.
+    :param argv: Arguments; ``None`` for ``sys.argv[1:]``.
     """
-    global _kg
+    from genealogy_kg.cli.cmd_mcp import mcp_command  # noqa: PLC0415 - cli imports this lazily
 
-    args = _parse_args(argv)
-    repo = Path(args.repo).resolve()
-    _kg = GenealogyKG(repo_root=repo, db_path=args.db, vectors_path=args.vectors)
-    mcp.run(transport=args.transport)
+    mcp_command.main(args=argv, prog_name="genkg-mcp")
 
 
 if __name__ == "__main__":
