@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: the MCP server is built on `kg_utils.mcp`**, the fleet's shared
+  server base (`kgrag_priv` MCP centralization plan, step 2). Needs
+  kgmodule-utils 0.29.0, unreleased; developed against its local wheel, with
+  the floor and lock left for the release pass. Tools take the canonical names
+  every fleet KG server shares, with no aliases: `graph_stats` -> `stats`,
+  `query_genealogy` -> `query`, `pack_genealogy` -> `pack`, plus the new
+  `get_node` and `neighbors`. `get_person`, `ancestors`, `descendants`,
+  `family_tree` and `analyze_genealogy` keep their names. Ten tools, the
+  canonical five first. `query` and `pack` now take `hop`, `max_nodes` and
+  `rels`.
+- **`genkg mcp`** is the standard command (`--repo`, `--db`, `--vectors`,
+  `--model`, `--transport stdio|streamable-http`, `--host`, `--port`,
+  `--manifest`). `sse` is gone. `genkg-mcp` stays and is the same command.
+  The graph is opened per session and closed after, and a repo with no store
+  is refused instead of served empty.
+- **Living-person redaction is tested on every canonical tool**: `query`,
+  `pack`, `get_node` and `neighbors` aimed at a redacted person return no
+  trace of their name or dates over MCP.
+- **BREAKING: `GenealogyKG.stats()` returns the fleet stats shape**
+  (kgmodule-utils 0.29.0's `KGModule.stats()`): `{"kind", "nodes": {"total",
+  "by_kind"}, "edges": {"total", "by_rel"}}`. The snapshot, analysis, status
+  and adapter readers moved with it, so snapshots and `genkg status` report
+  what they did before.
+
 ## [0.3.0] - 2026-10-23
 
 ### Added

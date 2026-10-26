@@ -26,10 +26,11 @@ def _build(corpus_root: Path, living_cutoff_years: int | None = None) -> Genealo
 def test_build_produces_the_expected_counts(corpus_root: Path) -> None:
     kg = _build(corpus_root)
     stats = kg.stats()
-    assert stats["node_counts"]["person"] == 12
-    assert stats["node_counts"]["family"] == 4
-    assert stats["node_counts"]["source"] == 2
-    assert stats["total_edges"] > 0
+    assert stats["kind"] == "genealogy"
+    assert stats["nodes"]["by_kind"]["person"] == 12
+    assert stats["nodes"]["by_kind"]["family"] == 4
+    assert stats["nodes"]["by_kind"]["source"] == 2
+    assert stats["edges"]["total"] > 0
 
 
 def test_query_finds_hartwell_by_occupation(corpus_root: Path) -> None:

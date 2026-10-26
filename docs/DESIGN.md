@@ -39,7 +39,7 @@ GEDCOM dates onto the fleet's temporal contract.
   |   `-- Robert Hartwell (1876-1949) m. Louise Brandt
   `-- Eliza Hartwell (b. 1851) m. Samuel Pryce
   ```
-- `genkg-mcp` exposes the same operations to Claude Code and other MCP
+- `genkg mcp` exposes the same operations to Claude Code and other MCP
   clients, including `family_tree` for the ASCII rendering.
 - A federated `kgrag query --from 1840 --to 1900` includes genealogy hits,
   because every dated node carries `occurred_start` / `occurred_end`, and
@@ -195,8 +195,8 @@ src/genealogy_kg/
   analysis.py       analyze_graph()/render_report(): the analyze() data and its Markdown
   config.py         [tool.genealogykg] sources + living_cutoff_years, .genealogykg/config.json
   snapshots.py      GenealogySnapshotManager over kg_utils.snapshots
-  mcp_server.py     FastMCP: query_genealogy, pack_genealogy, get_person,
-                    ancestors, descendants, family_tree, graph_stats, analyze_genealogy
+  mcp_server.py     kg_utils.mcp: stats, query, pack, get_node, neighbors, then
+                    get_person, ancestors, descendants, family_tree, analyze_genealogy
   adapter.py        GenealogyKGAdapter for KGRAG (optional extra `adapter`);
                     display() unreachable via make_adapter(), kept as reference
   viz.py            2-D rendering: pedigree_figure() (plotly), network_html()

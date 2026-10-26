@@ -22,8 +22,9 @@
       }
     },
     "genkg": {
-      "command": ".venv/bin/genkg-mcp",
+      "command": ".venv/bin/genkg",
       "args": [
+        "mcp",
         "--repo",
         "."
       ],

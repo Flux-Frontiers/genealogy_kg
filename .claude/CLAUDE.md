@@ -104,7 +104,7 @@ Each demo's `.genealogykg/` store lives beside its GEDCOM and is gitignored.
 - `viz.py`: 2-D pedigree/network HTML; `scene.py` + `viz3d.py`: 3-D growth
   scene and the Qt viewer, over `kg_utils.viz3d.organic` and `quiltwright`
 - `adapter.py`: kg-rag federation, `KGKind.GENEALOGY`
-- `mcp_server.py`: `genkg-mcp`
+- `mcp_server.py`: `genkg mcp` (and `genkg-mcp`), built on `kg_utils.mcp`; `genkg mcp --manifest` lists the tools
 - `cli/`: click group `genkg`, one `cmd_*.py` per command (build, query, pack,
   ancestors, descendants, analyze, corpus, snapshot, status, viz, viz3d,
   quilt, install-hooks), registered by `cli/main.py`

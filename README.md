@@ -94,7 +94,7 @@ genkg snapshot save
 genkg snapshot list
 
 # MCP server for Claude Code and other MCP clients
-genkg-mcp --repo .
+genkg mcp --repo .
 
 # No GEDCOM of your own? Build one of the 97 curated trees shipped in this
 # repo -- see "The curated corpus" below.

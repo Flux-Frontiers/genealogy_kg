@@ -16,6 +16,7 @@ from genealogy_kg.cli import (
     cmd_export,  # noqa: F401
     cmd_hooks,  # noqa: F401
     cmd_lineage,  # noqa: F401
+    cmd_mcp,  # noqa: F401
     cmd_query,  # noqa: F401
     cmd_snapshot,  # noqa: F401
     cmd_status,  # noqa: F401

@@ -23,6 +23,7 @@ from typing import Any
 from kg_utils.snapshots import PruneResult as PruneResult  # noqa: F401 -- re-export
 from kg_utils.snapshots import Snapshot
 from kg_utils.snapshots import SnapshotManager as _BaseSnapshotManager
+from kg_utils.stats import flat_stats
 
 #: Metric keys ``snapshot list``/``diff`` show and ``_compute_delta_from_metrics`` reports.
 GENEALOGY_METRICS: tuple[str, ...] = ("people", "families", "events", "places")
@@ -69,6 +70,7 @@ class GenealogySnapshotManager(_BaseSnapshotManager):
         :return: A :class:`~kg_utils.snapshots.Snapshot`, not yet saved.
         """
         counts = analysis.get("counts", {})
+        stats = flat_stats(stats)
         metrics: dict[str, Any] = {
             "total_nodes": stats.get("total_nodes", 0),
             "total_edges": stats.get("total_edges", 0),
