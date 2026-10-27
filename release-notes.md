@@ -1,46 +1,53 @@
-# Release Notes -- v0.4.0
+# Release Notes -- v0.5.0
 
-> Released: 2026-10-26
+> Released: 2026-10-27
 
-GenealogyKG's MCP server now runs on the fleet's shared base, `kg_utils.mcp`,
-so its first five tools have the same names on every fleet KG server: `stats`,
-`query`, `pack`, `get_node` and `neighbors`. `get_person`, `ancestors`,
-`descendants`, `family_tree` and `analyze_genealogy` keep their names.
-Living-person redaction holds on every tool, and is now tested on each.
+GenealogyKG now protects living people without being asked to. A build with
+nothing configured redacts anyone with no death or burial record born in the
+last 100 years, and treats people with no usable birth date the same way.
+`pack()` also stops returning the submitter's name, address, phone and email,
+which it leaked before even with redaction on. This changes default behavior,
+hence the minor version.
 
 ## What changed
 
-**Canonical tool names.** `graph_stats` is `stats`, `query_genealogy` is
-`query` and `pack_genealogy` is `pack`, with no aliases. `query` and `pack`
-now take `hop`, `max_nodes` and `rels`. The new `get_node` returns any node by
-id (`person:I7`, `family:F1`), and `neighbors` lists one node's families,
-events and places.
+**Redaction is the default.** An unset `living_cutoff_years` now means 100
+years, and `unknown_birth_policy` defaults to `"redact"`. Before, the filter
+was off unless configured, and even a configured cutoff kept undated people,
+who are about half the people in the curated corpus. Set
+`living_cutoff_years = 0` to turn redaction off for a private store.
+`export-web` and `export-swift` pick up the same default.
 
-**Privacy on every path.** A living person is redacted when the graph is
-built, so `query`, `get_node`, `neighbors` and the lineage tools only ever see
-`Living`; `pack` also strips the person's GEDCOM lines from every snippet. A
-new test aims all four canonical tools at a redacted person over MCP and finds
-no trace of the name or birth year.
+**Submitter records stay out of `pack()`.** Most GEDCOM files carry a `SUBM`
+record naming whoever compiled them, often with a home address and email. It
+sits just above the first person in the file, inside that person's snippet
+padding, so `pack()` returned it. `pack()` now clips it whether or not
+redaction is on.
 
-**One command, standard flags.** `genkg mcp` takes the fleet's `--repo`,
-`--db`, `--vectors`, `--model`, `--transport stdio|streamable-http`, `--host`,
-`--port` and `--manifest`. `genkg-mcp` is the same command. The graph opens
-per session and closes after, and a repo with no store is refused instead of
-served empty.
+**The committed corpus is scrubbed.** The 97 public trees in
+`corpora/entries/` came with their compilers' contact details. The new
+`scripts/scrub_submitters.py` cuts each submitter record to
+`1 NAME Withheld`; 88 trees are committed scrubbed, `fetch_corpora.sh` scrubs
+everything it fetches, and a test fails if a committed tree is not scrubbed.
 
-**Statistics in the fleet shape.** `GenealogyKG.stats()` returns `kind`,
-`nodes` (`total`, `by_kind`) and `edges` (`total`, `by_rel`). Snapshots,
-`genkg status` and the analysis report show what they did before.
+**Two exposures, documented apart.** The living-person filter governs what
+the tool returns. It does nothing for the GEDCOM files in the repository,
+which anyone can read. The README's new "What this repository holds" section
+and the design docs now say so.
 
 ## Upgrading
 
-Rename the tools in agent instructions and scripts (`graph_stats` -> `stats`,
-`query_genealogy` -> `query`, `pack_genealogy` -> `pack`) and drop
-`--transport sse` from any config. Code that read
-`GenealogyKG.stats()["node_counts"]` reads `["nodes"]["by_kind"]` instead.
-Keep `living_cutoff_years` in the served repo's `[tool.genealogykg]`: `pack`
-reads it there at call time. genealogy-kg now needs kgmodule-utils 0.29.0,
-whose `[mcp]` extra brings the MCP SDK.
+Rebuild every store. A store built before 0.5.0 keeps its unredacted nodes
+until rebuilt, and stores over `corpora/entries/` also return misaligned
+`pack()` snippets, because the scrub shifted line numbers:
+
+```bash
+genkg corpus ingest --force-build --no-register
+```
+
+If you relied on redaction being off, add `living_cutoff_years = 0` under
+`[tool.genealogykg]` in `pyproject.toml`. `GedcomExtractor` used directly is
+unchanged: it redacts nobody unless given a cutoff.
 
 ---
 
