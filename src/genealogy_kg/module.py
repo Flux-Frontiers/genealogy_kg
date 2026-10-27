@@ -234,7 +234,7 @@ class GenealogyKG(KGModule):
             see :func:`_redact_snippet_overlaps`.
         :raises ValueError: If ``q``, ``k``, ``hop``, or ``max_nodes`` is out
             of bounds.
-        :raises RuntimeError: If living-person redaction is configured but no
+        :raises RuntimeError: If living-person redaction is on but no
             GEDCOM sources resolved to verify it against -- see below.
         """
         if max_nodes is not None:
@@ -249,7 +249,8 @@ class GenealogyKG(KGModule):
             # config.json goes missing (see build()'s docstring). Fail loud
             # instead: this is the boundary the privacy filter depends on.
             raise RuntimeError(
-                "living_cutoff_years is configured but no GEDCOM sources "
+                f"living-person redaction is on (living_cutoff_years="
+                f"{extractor.living_cutoff_years}) but no GEDCOM sources "
                 "resolved -- refusing to pack() without being able to verify "
                 "redaction. Pass sources explicitly, or run 'genkg build "
                 "--source ...' (or set [tool.genealogykg] sources in "

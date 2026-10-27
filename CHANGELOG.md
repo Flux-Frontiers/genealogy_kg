@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `unknown_birth_policy` now defaults to `"redact"`, so people with no usable
   birth date and no death or burial record are treated as living. Stores
   built before this change keep their unredacted nodes until rebuilt.
+- **Rebuild every store over `corpora/entries/`.** Scrubbing the submitter
+  records shifted line numbers in 88 committed trees, and a store built
+  from the old file returns misaligned `pack()` snippets until rebuilt.
   `export-web` and `export-swift` pick up the same default cutoff.
 
 ### Fixed
