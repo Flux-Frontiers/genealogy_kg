@@ -7,6 +7,37 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- **BREAKING: living-person redaction is on by default.** An unset
+  `[tool.genealogykg] living_cutoff_years` now means 100 years
+  (`config.DEFAULT_LIVING_CUTOFF_YEARS`); `0` turns redaction off.
+  `unknown_birth_policy` now defaults to `"redact"`, so people with no usable
+  birth date and no death or burial record are treated as living. Stores
+  built before this change keep their unredacted nodes until rebuilt.
+- **Rebuild every store over `corpora/entries/`.** Scrubbing the submitter
+  records shifted line numbers in 88 committed trees, and a store built
+  from the old file returns misaligned `pack()` snippets until rebuilt.
+  `export-web` and `export-swift` pick up the same default cutoff.
+
+### Fixed
+
+- **`pack()` no longer leaks the submitter's contact details.** A `SUBM`
+  record (name, postal address, phone, email) usually sits just above the
+  first `INDI`, inside that person's snippet padding, and was returned even
+  with redaction on. `GedcomExtractor.private_spans()` (formerly
+  `living_spans()`) now covers submitter records, and `pack()` clips them
+  whether or not redaction is on.
+
+### Added
+
+- **`scripts/scrub_submitters.py`** cuts every `SUBM` record in a GEDCOM file
+  to `1 NAME Withheld`, in place and idempotently. `fetch_corpora.sh` runs it
+  over everything it fetches, and the committed `corpora/entries/` trees have
+  been scrubbed.
+- README section "What this repository holds": the filter covers tool
+  output, not the committed files.
+
 ## [0.4.0] - 2026-10-26
 
 ### Changed

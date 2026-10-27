@@ -20,6 +20,8 @@ mkdir -p "$CORPORA"
 #    the SourceForge "famous family trees" collection, and a size ladder from
 #    14 people (bronte.ged) to 203,154 (longsword/WilliamLongsword.ged).
 if [ -d "$CORPORA/gedcom-samples/.git" ]; then
+    # Drop the submitter scrub from the last run (step 4) so the pull applies.
+    git -C "$CORPORA/gedcom-samples" checkout --quiet -- .
     git -C "$CORPORA/gedcom-samples" pull --quiet --ff-only
 else
     git clone --quiet --depth 1 https://github.com/D-Jeffrey/gedcom-samples.git \
@@ -49,5 +51,10 @@ if [ ! -f "$CORPORA/gramps/sample.ged" ]; then
         https://raw.githubusercontent.com/gramps-project/gramps/master/example/gedcom/sample.ged
 fi
 echo "gramps: 1 file"
+
+# 4. Withhold every submitter's name, address, phone and email (SUBM
+#    records). They are no part of the family history; see
+#    scripts/scrub_submitters.py. corpora/entries/ is committed already scrubbed.
+python3 -I "$REPO_DIR/scripts/scrub_submitters.py" "$CORPORA"
 
 echo "corpora ready under $CORPORA"

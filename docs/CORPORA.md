@@ -88,9 +88,12 @@ living-person exposure before being let in. That approach hit its limit at
 historical, but his descent line walks straight into the living modern
 European royal families -- vendored, then removed on that same check.
 
-The safety boundary is now the living-person filter itself, enforced at
-the query/pack/MCP boundary (`GedcomExtractor.is_living()`, through
-`pack()`) rather than which files are let into the repo. That's what let
+The safety boundary for what the tool returns is now the living-person
+filter itself, on by default and enforced at the query/pack/MCP boundary
+(`GedcomExtractor.is_living()`, through `pack()`) rather than which files
+are let into the repo. It does not cover the committed files, which anyone
+can read directly; those are public GEDCOMs as published, with their
+submitter (`SUBM`) records withheld by `scripts/scrub_submitters.py`. That's what let
 the corpus grow to its current 97 trees across 10 genres -- `royal92.ged`
 included, per the table below -- without re-doing a person-by-person audit
 of each one. `genkg corpus survey`/`ingest` (see the main

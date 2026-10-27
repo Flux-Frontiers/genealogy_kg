@@ -14,7 +14,9 @@ the graph is built (a bare ``Living`` node with no name, dates, events or
 source span), so ``query``, ``get_node``, ``neighbors`` and the lineage tools
 read only the redacted graph; ``pack`` goes through
 :meth:`~genealogy_kg.module.GenealogyKG.pack`, which also strips every line of
-a living person's real GEDCOM record from the snippets it returns.
+a living person's real GEDCOM record, and of the file's submitter record,
+from the snippets it returns. Redaction is on unless a repo turns it off
+with ``living_cutoff_years = 0``.
 
 The tool list is not kept by hand anywhere: each tool's docstring is its
 description, the server's instructions are generated from them, and::

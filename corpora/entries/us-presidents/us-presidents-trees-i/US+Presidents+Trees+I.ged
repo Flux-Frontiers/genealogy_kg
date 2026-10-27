@@ -6,27 +6,7 @@
 1 CHAR IBMPC
 1 FILE F:\BK5\PRES\PRES.GED
 0 @SUB1@ SUBM
-1 NAME $$http://dsa-slave1.hull.ac.uk:8888/Rcn%%3dBrian%%20C%%20Tompsett%%2c%%20ou%%3dComputer%%20Science%%2c%%20o%%3dUniversity%%20of%%20Hull%%2c%%20c%%3dGB Brian Tompsett
-1 ADDR $$http://www.dcs.hull.ac.uk/ Department of Computer Science
-2 CONT $$http://www.hull.ac.uk/ University of Hull
-2 CONT Hull, UK, HU6 7RX
-1 PHON $$mailto:bct@dcs.hull.ac.uk bct@dcs.hull.ac.uk
-1 NOTE This data is a duplicate of that available for public ftp as
-2 CONT $$ftp://ftp.cac.psu.edu/pub/genealogy/text/data/pres_bk5.zip
-2 CONT The notes for this data are reproduced here:
-2 CONT This file is adapted from Funk & Wagnells Special Edition "The Presidents".
-2 CONT It is meant as an easy reference companion to the GEDCOM file(s) available
-2 CONT for the american presidents. A complete BK5 data set for all 42 presidents
-2 CONT (mostly information from the previously existing individual .GED files) is
-2 CONT also available from the author of this LaTeX file
-2 CONT (in uuencoded .ZIP format).
-2 CONT Prepared on May 1, 1994
-2 CONT         by Otto-G. Richter (p277ric@mpifr-bonn.mpg.de, EFFNOD::RICHTER)
-2 CONT Click here to access the source for the gedcom to html converter
-2 CONT $$ftp://www.dcs.hull.ac.uk/public/genealogy/GED2WWW.tar.Z sources.
-2 CONT Click here to obtain a copy of the
-2 CONT $$ftp://www.dcs.hull.ac.uk/public/genealogy/presidents.ged original gedcom file
-2 CONT from this server.
+1 NAME Withheld
 0 @I1@ INDI
 1 NAME William Jefferson /CLINTON/
 1 SEX M

@@ -20,7 +20,8 @@ years of today is emitted as a bare ``person`` node named ``Living`` -- no
 name, dates, events, notes or citations -- and their name is withheld from
 every other node's prose too. ``unknown_birth_policy="redact"`` also redacts
 people with no usable birth date and no death/burial evidence. Off unless
-configured.
+configured here; ``GenealogyKG`` turns both on by default (see
+:mod:`genealogy_kg.config`).
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
@@ -54,6 +55,9 @@ EDGE_KINDS: tuple[str, ...] = (
 
 #: Name and qualname given to a redacted living person.
 LIVING_NAME = "Living"
+
+#: Level-0 records naming the file's submitter, never shown by ``pack()``.
+SUBMITTER_TAGS: frozenset[str] = frozenset({"SUBM"})
 
 _EVENT_LABELS: dict[str, str] = {
     "BIRT": "Birth",
@@ -169,33 +173,44 @@ class GedcomExtractor(KGExtractor):
         """Return a person's formatted name, or ``LIVING_NAME`` when redacted."""
         return LIVING_NAME if self.is_living(ind) else ind.name.format()
 
-    def living_spans(self) -> dict[str, dict[str, tuple[int, int]]]:
-        """Return the real line span of every living-redacted person, by source file.
+    def private_spans(self) -> dict[str, dict[str, tuple[int, int]]]:
+        """Return the line span of every record ``pack()`` must never show, by source file.
 
-        Nowhere else keeps this: :meth:`_living_person` deliberately omits
-        the real span from the graph so a query against a redacted person
-        cannot ground a snippet back to their record. But ``pack()``'s
-        context padding is computed per *node*, and a legitimate neighbor's
-        padded window can still run past its own record into the next one in
-        the file -- if that neighbor is a redacted living person, their real
-        record leaks through a snippet that "belongs" to someone else
-        entirely. ``GenealogyKG.pack()`` uses this to clip that overlap back
-        out, regardless of which node's snippet it turned up in.
+        Two kinds of record are private:
+
+        - A living-redacted person. :meth:`_living_person` deliberately omits
+          the real span from the graph so a query against a redacted person
+          cannot ground a snippet back to their record. But ``pack()``'s
+          context padding is computed per *node*, and a legitimate neighbor's
+          padded window can still run past its own record into the next one
+          in the file -- if that neighbor is a redacted living person, their
+          real record leaks through a snippet that "belongs" to someone else
+          entirely.
+        - A ``SUBM`` record: the submitter's name, postal address,
+          phone and email. It is no part of the family history, it usually
+          sits right above the first ``INDI``, and it is clipped whether or
+          not living-person redaction is on.
+
+        ``GenealogyKG.pack()`` uses this to clip those lines back out,
+        regardless of which node's snippet they turned up in.
 
         :return: ``{source_path: {xref: (lineno, end_lineno)}}``, only for
-            files and people actually redacted; empty when redaction is off.
+            files that hold a private record.
         """
-        if self._living_after_year is None:
-            return {}
         result: dict[str, dict[str, tuple[int, int]]] = {}
         for source in self.sources:
             rel_path = str(Path(source))
             with GedcomFile(self.repo_path / source) as gedcom:
                 spans = gedcom.spans()
+                living = (
+                    {_xref(ind) for ind in gedcom.records("INDI") if self.is_living(ind)}
+                    if self._living_after_year is not None
+                    else set()
+                )
                 file_spans = {
-                    xref: (spans[xref].lineno, spans[xref].end_lineno)
-                    for ind in gedcom.records("INDI")
-                    if self.is_living(ind) and (xref := _xref(ind)) in spans
+                    xref: (span.lineno, span.end_lineno)
+                    for xref, span in spans.items()
+                    if xref in living or span.tag in SUBMITTER_TAGS
                 }
             if file_spans:
                 result[rel_path] = file_spans

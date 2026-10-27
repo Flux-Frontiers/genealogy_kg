@@ -48,25 +48,26 @@ DEFAULT_GENEALOGY_RELS: tuple[str, ...] = tuple(
 
 
 def _redact_snippet_overlaps(
-    pack: SnippetPack, living_spans: dict[str, dict[str, tuple[int, int]]]
+    pack: SnippetPack, private_spans: dict[str, dict[str, tuple[int, int]]]
 ) -> SnippetPack:
-    """Strip any line inside a living person's real record from every snippet.
+    """Strip any line inside a private record from every snippet.
 
-    A snippet's own node is never the redacted person -- ``_living_person``
-    already omits their span, so ``pack()`` cannot ground one for them
-    directly. This closes the other path: a legitimate neighbor's
-    context-padded window can run past its own record into the next one in
-    the file, which may belong to a living person redacted everywhere else.
+    A snippet's own node is never a private record -- ``_living_person``
+    omits a redacted person's span and submitter records get no node, so
+    ``pack()`` cannot ground one directly. This closes the other path: a
+    legitimate neighbor's context-padded window can run past its own record
+    into the next one in the file, which may be a living person redacted
+    everywhere else or the file's submitter.
 
     :param pack: The result from ``super().pack()``.
-    :param living_spans: From :meth:`~genealogy_kg.extractor.GedcomExtractor.living_spans`.
+    :param private_spans: From :meth:`~genealogy_kg.extractor.GedcomExtractor.private_spans`.
     :return: *pack*, mutated in place and returned for convenience.
     """
     for node in pack.nodes:
         snippet = node.get("snippet")
         if not snippet:
             continue
-        file_spans = living_spans.get(snippet.get("path"))
+        file_spans = private_spans.get(snippet.get("path"))
         if not file_spans:
             continue
         start = snippet["start"]
@@ -92,13 +93,14 @@ class GenealogyKG(KGModule):
         ``[tool.genealogykg] sources`` at build/status time.
     :param model: Sentence-transformer model name.
     :param living_cutoff_years: Redact people without a death record born
-        within this many years of today. When ``None``, resolved from
-        ``[tool.genealogykg] living_cutoff_years`` at build time; unset there
-        too means no redaction.
+        within this many years of today; ``0`` turns redaction off. When
+        ``None``, resolved from ``[tool.genealogykg] living_cutoff_years`` at
+        build time; unset there too means
+        :data:`~genealogy_kg.config.DEFAULT_LIVING_CUTOFF_YEARS`.
     :param unknown_birth_policy: How to handle people without a usable birth
         date or death/burial evidence: ``"keep"`` or ``"redact"``. When
         ``None``, resolved from ``[tool.genealogykg] unknown_birth_policy``;
-        unset there preserves the person.
+        unset there redacts the person.
     """
 
     _default_dir = ".genealogykg"
@@ -139,7 +141,7 @@ class GenealogyKG(KGModule):
         since ``query``/``pack``/``get_person``/etc. only need the already-
         built SQLite and work fine regardless. The one place this bites is
         ``pack()``'s living-person redaction, which must re-scan the GEDCOM
-        file for spans to strip: with no sources to scan, ``living_spans()``
+        file for spans to strip: with no sources to scan, ``private_spans()``
         is trivially empty, which looks identical to "no living people
         found" -- see :meth:`pack`.
 
@@ -165,7 +167,7 @@ class GenealogyKG(KGModule):
         return GedcomExtractor(
             self.repo_root,
             sources=sources,
-            living_cutoff_years=cutoff,
+            living_cutoff_years=cutoff or None,
             unknown_birth_policy=policy,
         )
 
@@ -226,39 +228,38 @@ class GenealogyKG(KGModule):
         :param max_nodes: Maximum nodes in the pack, ``1``-
             :data:`~genealogy_kg.validation.MAX_MAX_NODES`. ``None`` uses the
             SDK default.
-        :return: :class:`~kg_utils.specs.SnippetPack`. When living-person
-            redaction is on, no returned snippet contains a line from a
-            redacted person's real GEDCOM record -- see
-            :func:`_redact_snippet_overlaps`.
+        :return: :class:`~kg_utils.specs.SnippetPack`. No returned snippet
+            contains a line from a submitter record, or, when living-person
+            redaction is on, from a redacted person's real GEDCOM record --
+            see :func:`_redact_snippet_overlaps`.
         :raises ValueError: If ``q``, ``k``, ``hop``, or ``max_nodes`` is out
             of bounds.
-        :raises RuntimeError: If living-person redaction is configured but no
+        :raises RuntimeError: If living-person redaction is on but no
             GEDCOM sources resolved to verify it against -- see below.
         """
         if max_nodes is not None:
             kwargs["max_nodes"] = max_nodes
         result = super().pack(q, k=k, hop=hop, rels=rels, **kwargs)
         extractor = self.make_extractor()
-        if extractor.living_cutoff_years is None:
-            return result
-        if not extractor.sources:
-            # living_spans() re-scans the GEDCOM file for spans to strip; with
+        if extractor.living_cutoff_years is not None and not extractor.sources:
+            # private_spans() re-scans the GEDCOM file for spans to strip; with
             # no sources resolved it is trivially empty -- indistinguishable
             # from "no living people found" if we just fell through. That
             # would silently serve unredacted records the moment a store's
             # config.json goes missing (see build()'s docstring). Fail loud
             # instead: this is the boundary the privacy filter depends on.
             raise RuntimeError(
-                "living_cutoff_years is configured but no GEDCOM sources "
+                f"living-person redaction is on (living_cutoff_years="
+                f"{extractor.living_cutoff_years}) but no GEDCOM sources "
                 "resolved -- refusing to pack() without being able to verify "
                 "redaction. Pass sources explicitly, or run 'genkg build "
                 "--source ...' (or set [tool.genealogykg] sources in "
                 "pyproject.toml) so this repo's sources can be found."
             )
-        living_spans = extractor.living_spans()
-        if not living_spans:
+        private_spans = extractor.private_spans()
+        if not private_spans:
             return result
-        return _redact_snippet_overlaps(result, living_spans)
+        return _redact_snippet_overlaps(result, private_spans)
 
     def analysis(self) -> dict[str, Any]:
         """Return the analysis data: counts, generation depth, surnames, hygiene lists.
