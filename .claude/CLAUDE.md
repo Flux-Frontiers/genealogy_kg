@@ -83,7 +83,10 @@ Each demo's `.genealogykg/` store lives beside its GEDCOM and is gitignored.
   the living modern royal families. That tree and the Kennedy one are in
   `corpora/entries/` today, admitted by the runtime filter rather than by an
   audit. Keep that filter honest -- it is now the only thing standing between
-  a committed GEDCOM and a living person's record.
+  the tool's output (query, pack, MCP, exports) and a living person's record.
+  It does nothing for the raw files: anyone can read a committed GEDCOM
+  directly, so only trees already published upstream go in, scrubbed of
+  submitter records with `scripts/scrub_submitters.py`.
 - Public test corpora: `make fetch-corpora` fills `corpora/` (gitignored,
   except `corpora/entries/`). `docs/CORPORA.md` says which file exercises
   what. Tests that need the fetched (untracked) ones are marked `integration`

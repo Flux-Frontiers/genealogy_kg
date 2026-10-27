@@ -145,7 +145,8 @@ contain personal data about living people; keep them out of version control.
 
 ### Living people
 
-Before sharing a store, turn on the living-person filter and rebuild:
+The living-person filter is on by default. With nothing configured, a build
+behaves as if `pyproject.toml` said:
 
 ```toml
 [tool.genealogykg]
@@ -154,22 +155,39 @@ living_cutoff_years = 100
 unknown_birth_policy = "redact"
 ```
 
+`living_cutoff_years = 0` turns the filter off, for a private store only.
+
 Anyone with no death or burial record who was born within the last 100
-years is then stored as a bare `person` node named `Living`: their lineage
+years is stored as a bare `person` node named `Living`: their lineage
 edges and sex are kept so trees still walk through them, but their name,
 dates, events, notes and citations are dropped, and their name is withheld
 from every family, spouse and parent mention too. A family with a living
 spouse keeps its members but not its marriage details.
 
 `unknown_birth_policy` controls records that have neither a usable birth
-date nor a death/burial record. The default, `"keep"`, preserves historical
-data completeness and existing behavior. The conservative `"redact"` mode
-withholds those uncertain records; this may also hide historical people whose
-dates are simply incomplete. A death or burial record always counts as
-affirmative evidence that the person is not living.
+date nor a death/burial record. The default, `"redact"`, treats them as
+living; this also hides historical people whose dates are simply
+incomplete. `"keep"` preserves them, at the cost of exposing any living
+person whose record carries no dates. A death or burial record always counts
+as affirmative evidence that the person is not living.
 
-`pack` reads the GEDCOM file in place, so share the `.genealogykg/` store
-without the `.ged` file.
+`pack` never shows a submitter (`SUBM`) record -- the compiler's name,
+address, phone and email -- whether or not the filter is on.
+
+A store built before redaction was the default stays unredacted until it is
+rebuilt. `pack` reads the GEDCOM file in place, so share the `.genealogykg/`
+store without the `.ged` file.
+
+### What this repository holds
+
+The filter governs what the tool returns: `query`, `pack`, the MCP server
+and the exports. It does nothing for the GEDCOM files themselves. The 97
+trees in `corpora/entries/` are public GEDCOMs from
+[D-Jeffrey/gedcom-samples](https://github.com/D-Jeffrey/gedcom-samples) and
+the Gramps and GEDitCOM samples, committed as published, except that their
+submitter records are withheld by `scripts/scrub_submitters.py`. Some of
+them (royal92, Kennedy, Tolkien, the US presidents) name people who are
+alive today. Never commit a personal or family GEDCOM.
 
 `export-web` and `export-swift` never trust the store. Each re-reads the
 GEDCOM under its own cutoff (`--living-cutoff`, default the pyproject value;

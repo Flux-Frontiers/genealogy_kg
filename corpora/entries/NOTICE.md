@@ -18,4 +18,8 @@ before this was written -- see `docs/CODEBASE_REVIEW.md` item 1, "Close the
 living-person privacy gap": redaction now happens at the query/pack/MCP
 boundary (`GedcomExtractor.is_living()`, enforced through `pack()`) rather
 than depending on curating which source files are allowed into the repo.
-That is the current safety boundary for this directory's broader scope.
+That is the current safety boundary for what the tool returns from this
+directory, and it is on by default. It does not cover the files themselves:
+anyone can read them here, so they are committed only as already published
+upstream, with every submitter (`SUBM`) record cut to `1 NAME Withheld` by
+`scripts/scrub_submitters.py`.

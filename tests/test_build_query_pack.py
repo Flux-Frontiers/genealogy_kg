@@ -102,7 +102,7 @@ def test_pack_redacts_correctly_from_a_fresh_instance_after_build(corpus_root: P
     # queried through a *separate*, freshly constructed instance -- exactly
     # what every CLI command and the MCP server do -- must still redact.
     # Before build() persisted sources, the fresh instance resolved
-    # sources=[], living_spans() came back trivially empty, and pack()
+    # sources=[], private_spans() came back trivially empty, and pack()
     # silently served Eliza's real GEDCOM record.
     _build(corpus_root, living_cutoff_years=200)
     fresh = GenealogyKG(repo_root=corpus_root, living_cutoff_years=200)

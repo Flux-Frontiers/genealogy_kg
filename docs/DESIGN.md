@@ -101,8 +101,10 @@ place, so deleting the file removes the data from every path that could
 reveal it.
 
 The living-person filter (Phase 3) is `[tool.genealogykg]
-living_cutoff_years = N`, or `GenealogyKG(living_cutoff_years=N)`. Off
-unless set. A person with no `DEAT`/`BURI` record whose birth (fallback
+living_cutoff_years = N`, or `GenealogyKG(living_cutoff_years=N)`. On by
+default: unset means 100 years (`config.DEFAULT_LIVING_CUTOFF_YEARS`), and
+`0` turns it off. `GedcomExtractor` itself stays explicit, redacting nobody
+unless given a cutoff; the defaults live in `config.py`. A person with no `DEAT`/`BURI` record whose birth (fallback
 `BAPM`, `CHR`) falls within `N` years of today becomes a bare `person` node
 named `Living`: xref, sex and lineage edges kept (so trees still walk
 through them), name, dates, events, notes, citations and `surname` dropped,
@@ -112,13 +114,20 @@ drops its `MARR` date, place, event and temporal keys.
 
 Unknown birth status is configurable with `[tool.genealogykg]
 unknown_birth_policy = "keep" | "redact"` or the matching `GenealogyKG`
-argument. `"keep"` is the backward-compatible default. `"redact"` is the
-conservative mode: when no usable birth year and no `DEAT`/`BURI` record
-exist, the person is treated as living. It closes the fail-open privacy gap
-at the cost of hiding some historical people with incomplete records. A
-`DEAT` or `BURI` record is affirmative evidence even when its own date is
-missing. `pack()` reads the GEDCOM file in place, so a redacted store must
-travel without the file.
+argument. `"redact"` is the default: when no usable birth year and no
+`DEAT`/`BURI` record exist, the person is treated as living. It closes the
+fail-open privacy gap at the cost of hiding some historical people with
+incomplete records; `"keep"` preserves them. A `DEAT` or `BURI` record is
+affirmative evidence even when its own date is missing. `pack()` reads the
+GEDCOM file in place, so a redacted store must travel without the file.
+
+`pack()` also clips every `SUBM` record from its snippets, filter on or off:
+the submitter's name, address, phone and email sit just above the first
+`INDI` in most files, inside its context padding.
+
+The filter covers what the tool emits, not the files in the repository: the
+curated corpus under `corpora/entries/` is committed as published, minus its
+submitter records (`scripts/scrub_submitters.py`).
 
 ## Graph model
 

@@ -55,6 +55,10 @@ all: setup test lint type
 # demo's .genealogykg store lives alongside its GEDCOM, also gitignored.
 # Uses --schematic (straight-line layout) for speed; drop it in the genkg
 # command below for the slower organic-growth render.
+#
+# Builds use the default privacy settings: a 100-year living cutoff with
+# undated people redacted. A store is built once and reused, so delete a
+# demo's .genealogykg/ to rebuild one made before redaction was the default.
 # ---------------------------------------------------------------------------
 CORPORA := corpora/gedcom-samples
 

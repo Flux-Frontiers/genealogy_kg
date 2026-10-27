@@ -58,12 +58,13 @@ def test_kennedy_conservative_policy_redacts_unknown_births() -> None:
     if not ged_path.exists():
         pytest.skip("Kennedy sample not present; run scripts/fetch_corpora.sh")
 
-    default_nodes = {
+    keep_nodes = {
         node.node_id: node
         for node in GenealogyKG(
             repo_root=kennedy_root,
             sources=[Path("kennedy.ged")],
             living_cutoff_years=100,
+            unknown_birth_policy="keep",
         )
         .make_extractor()
         .extract()
@@ -74,8 +75,6 @@ def test_kennedy_conservative_policy_redacts_unknown_births() -> None:
         for node in GenealogyKG(
             repo_root=kennedy_root,
             sources=[Path("kennedy.ged")],
-            living_cutoff_years=100,
-            unknown_birth_policy="redact",
         )
         .make_extractor()
         .extract()
@@ -83,9 +82,9 @@ def test_kennedy_conservative_policy_redacts_unknown_births() -> None:
     }
 
     # Doris Kearns Goodwin (I70) has neither a usable birth date nor a
-    # DEAT/BURI record in this sample. Preserve the legacy default, but redact
-    # her when the conservative policy is explicitly selected.
-    assert default_nodes["person:I70"].name == "Doris Kearns Goodwin"
+    # DEAT/BURI record in this sample. The default (100 years, "redact")
+    # redacts her; only an explicit "keep" preserves her.
+    assert keep_nodes["person:I70"].name == "Doris Kearns Goodwin"
     assert conservative_nodes["person:I70"].name == "Living"
 
     # Patrick Kennedy (I120) also has no usable birth date, but a DEAT record
@@ -94,5 +93,5 @@ def test_kennedy_conservative_policy_redacts_unknown_births() -> None:
 
     # Qualified and partial dates remain usable: ABOUT 1955 and 1933 are both
     # within the cutoff and are redacted under either policy.
-    assert default_nodes["person:I182"].name == "Living"
-    assert default_nodes["person:I18"].name == "Living"
+    assert keep_nodes["person:I182"].name == "Living"
+    assert keep_nodes["person:I18"].name == "Living"

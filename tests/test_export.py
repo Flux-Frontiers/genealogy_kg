@@ -92,7 +92,7 @@ LIVING_NAME = "Zephyrine Vantablack"
 PRIVACY = PrivacySettings(living_cutoff_years=100)
 
 
-def _build(root: Path, ged: str, *, cutoff: int | None) -> GenealogyKG:
+def _build(root: Path, ged: str, *, cutoff: int) -> GenealogyKG:
     (root / "family.ged").write_text(ged, encoding="utf-8")
     kg = GenealogyKG(
         repo_root=root,
@@ -155,7 +155,7 @@ def test_privacy_records_its_settings() -> None:
 
 
 def test_export_refuses_a_store_built_without_redaction(tmp_path: Path) -> None:
-    kg = _build(_repo_dir(tmp_path), LIVING_GED, cutoff=None)
+    kg = _build(_repo_dir(tmp_path), LIVING_GED, cutoff=0)
     with pytest.raises(ExportError, match="not redacted in the store"):
         export_web(kg, tmp_path / "out", PRIVACY)
     assert not (tmp_path / "out").exists()
@@ -196,7 +196,7 @@ def test_a_living_namesake_of_an_ancestor_does_not_block_the_export(tmp_path: Pa
 
 
 def test_include_living_exports_everyone_and_says_so(tmp_path: Path) -> None:
-    kg = _build(_repo_dir(tmp_path), LIVING_GED, cutoff=None)
+    kg = _build(_repo_dir(tmp_path), LIVING_GED, cutoff=0)
     export_web(kg, tmp_path / "out", PrivacySettings(None, include_living=True))
     catalog = json.loads((tmp_path / "out" / "catalog.json").read_text())
     assert catalog["meta"]["privacy"]["include_living"] is True
@@ -291,8 +291,17 @@ def test_cli_export_web(sample_kg: GenealogyKG, tmp_path: Path) -> None:
     )
     assert result.exit_code == 0, result.output
     assert "12 people" in result.output
+    # No flag: the default cutoff applies.
+    again = runner.invoke(
+        cli, ["export-web", "--repo", str(sample_kg.repo_root), "--out", str(out), "--force"]
+    )
+    assert again.exit_code == 0, again.output
+    # Redaction turned off in pyproject: refused without --include-living.
+    (sample_kg.repo_root / "pyproject.toml").write_text(
+        "[tool.genealogykg]\nliving_cutoff_years = 0\n"
+    )
     refused = runner.invoke(
-        cli, ["export-web", "--repo", str(sample_kg.repo_root), "--out", str(out)]
+        cli, ["export-web", "--repo", str(sample_kg.repo_root), "--out", str(out), "--force"]
     )
     assert refused.exit_code != 0
     assert "living-person cutoff" in refused.output

@@ -19,6 +19,10 @@ from typing import Any
 
 _CONFIG_PATH = ".genealogykg/config.json"
 
+#: Living-person cutoff used when ``[tool.genealogykg] living_cutoff_years``
+#: is unset. 100 years is the usual genealogy convention.
+DEFAULT_LIVING_CUTOFF_YEARS = 100
+
 
 def _pyproject_table(repo_root: Path) -> dict[str, Any]:
     """Return the ``[tool.genealogykg]`` table of ``pyproject.toml``, or ``{}``."""
@@ -44,25 +48,26 @@ def load_sources(repo_root: Path) -> list[Path]:
 
 
 def load_living_cutoff(repo_root: Path) -> int | None:
-    """Return ``[tool.genealogykg] living_cutoff_years``, or ``None`` when unset.
+    """Return ``[tool.genealogykg] living_cutoff_years``, resolved for use.
 
-    Unset means no living-person redaction. See docs/DESIGN.md, "Source
-    files are private by default".
+    Redaction is on by default: unset means
+    :data:`DEFAULT_LIVING_CUTOFF_YEARS`, and ``0`` turns it off. See
+    docs/DESIGN.md, "Source files are private by default".
 
     :param repo_root: Repository root.
-    :return: Number of years, or ``None``.
+    :return: Number of years, or ``None`` when redaction is off.
     """
-    value = _pyproject_table(repo_root).get("living_cutoff_years")
-    return int(value) if value is not None else None
+    value = _pyproject_table(repo_root).get("living_cutoff_years", DEFAULT_LIVING_CUTOFF_YEARS)
+    return int(value) or None
 
 
 def load_unknown_birth_policy(repo_root: Path) -> str:
     """Return the living-person policy for records without a usable birth date.
 
     :param repo_root: Repository root.
-    :return: ``"keep"`` (the default) or the configured value.
+    :return: ``"redact"`` (the default) or the configured value.
     """
-    return str(_pyproject_table(repo_root).get("unknown_birth_policy", "keep"))
+    return str(_pyproject_table(repo_root).get("unknown_birth_policy", "redact"))
 
 
 def load_default_xref(repo_root: Path) -> str | None:

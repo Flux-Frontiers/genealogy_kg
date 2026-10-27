@@ -144,7 +144,7 @@ def test_a_name_split_across_a_page_boundary_is_still_caught(tmp_path: Path) -> 
 
 
 def test_export_swift_refuses_an_unredacted_store(tmp_path: Path) -> None:
-    kg = _build(_repo_dir(tmp_path), LIVING_GED, cutoff=None)
+    kg = _build(_repo_dir(tmp_path), LIVING_GED, cutoff=0)
     with pytest.raises(ExportError, match="not redacted"):
         export_swift(kg, tmp_path / "out", PRIVACY)
     assert not (tmp_path / "out").exists()
