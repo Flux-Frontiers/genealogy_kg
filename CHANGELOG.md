@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Development status is now Beta (PyPI classifier `4 - Beta`), and the
+  README's status note is cut down to what works today.
+
+### Added
+
+- A documentation site at https://flux-frontiers.github.io/genealogy_kg/:
+  `docs/*.md` rendered by mkdocs-material (`mkdocs.yml`, a new
+  `docs/index.md` home page), built `--strict` on pull requests and deployed
+  to GitHub Pages from main by `.github/workflows/docs.yml`. `make
+  docs-install`, `make docs` and `make docs-serve` build it locally.
+
 ## [0.5.0] - 2026-10-27
 
 ### Changed

@@ -5,6 +5,7 @@
 [![PyPI](https://img.shields.io/pypi/v/genealogy-kg.svg)](https://pypi.org/project/genealogy-kg/)
 [![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/Flux-Frontiers/genealogy_kg/releases)
 [![CI](https://github.com/Flux-Frontiers/genealogy_kg/actions/workflows/ci.yml/badge.svg)](https://github.com/Flux-Frontiers/genealogy_kg/actions/workflows/ci.yml)
+[![Docs](https://github.com/Flux-Frontiers/genealogy_kg/actions/workflows/docs.yml/badge.svg)](https://flux-frontiers.github.io/genealogy_kg/)
 [![DOI](https://img.shields.io/badge/DOI-10.5281%2Fzenodo.22182369-blue.svg)](https://doi.org/10.5281/zenodo.22182369)
 [![Poetry](https://img.shields.io/endpoint?url=https://python-poetry.org/badge/v0.json)](https://python-poetry.org/)
 [![Corpus](https://img.shields.io/badge/corpus-97%20trees-orange.svg)](corpora/entries/NOTICE.md)
@@ -19,27 +20,20 @@ temporal contract.
 
 **See [docs/USAGE.md](docs/USAGE.md) for the complete guide** -- every CLI
 command, the MCP server's tool reference, the curated corpus, and the
-living-person privacy model, with real examples.
+living-person privacy model, with real examples. The docs are also published
+at [flux-frontiers.github.io/genealogy_kg](https://flux-frontiers.github.io/genealogy_kg/).
+[The Family orchard](https://flux-frontiers.github.io/kpress_family/) is a
+browser app over `genkg export-web` output, showing three public trees.
 
 *Author: Eric G. Suchanek, PhD -- Flux-Frontiers, Liberty TWP, OH*
 
-> **Status: pre-alpha.** `build`, `query`, `pack`, `analyze`, `status`,
-> ASCII lineage trees (`ancestors`/`descendants`), KGRAG federation, the
-> place hierarchy, the living-person filter, snapshots, the 2-D `viz` charts
-> and the 3-D `quilt`/`viz3d` renderer all work end to end (Phase 1-5). Since
-> then: a curated, committed corpus (`corpora/entries/`, 97 trees across 10
-> genres) with `genkg corpus survey`/`ingest` to build and register it;
-> bounded, normalized CLI and MCP inputs; deterministic resource cleanup and
-> an MCP shutdown hook; a full MCP behavioral test suite and an enforced
-> coverage floor; and field parity with kg-rag's own federation adapter.
-> 0.3.0 adds the hourglass 3-D tree (ancestors as roots, descendants as
-> canopy, every limb a kinship edge) and `export-web`/`export-swift`, the
-> data files The Knowledge Press: The Family reads. 0.4.0 moves the MCP
-> server onto the fleet's shared base, `kg_utils.mcp`: the canonical
-> `stats`, `query`, `pack`, `get_node` and `neighbors` tools, with
-> living-person redaction tested on each. 0.5.0 turns that redaction on by
-> default (100 years, undated people treated as living) and keeps every
-> submitter's contact record out of `pack()` and the committed corpus. See
+> **Status: beta (0.5.0).** Build, query and pack, lineage walks, analysis,
+> snapshots, the 2-D charts, the 3-D hourglass tree with Looking Glass quilts,
+> the web and Swift exports, the `genkg` CLI and the `genkg mcp` server work
+> end to end, and have been run against the 97-tree curated corpus. Living
+> people are redacted by default, and `pack()` never returns a submitter's
+> contact record. KGRAG federates a store as kind `genealogy`. See
+> [CHANGELOG.md](CHANGELOG.md) for what each release added and
 > [docs/DESIGN.md](docs/DESIGN.md) for the phased build history.
 
 ## Overview
