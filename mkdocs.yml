@@ -1,0 +1,59 @@
+# GenealogyKG documentation: the usage guide, the design notes and the corpus
+# reference, rendered by mkdocs-material and published to
+# https://flux-frontiers.github.io/genealogy_kg/ by the Docs workflow. The
+# Family orchard, the web app that reads `genkg export-web` output, is
+# published from kpress_family and linked from the home page.
+
+site_name: GenealogyKG
+site_description: A knowledge graph over GEDCOM family-history files.
+site_url: https://flux-frontiers.github.io/genealogy_kg/
+repo_url: https://github.com/Flux-Frontiers/genealogy_kg
+repo_name: Flux-Frontiers/genealogy_kg
+edit_uri: edit/main/docs/
+copyright: "&copy; 2026 Eric G. Suchanek, PhD, Flux-Frontiers"
+
+# A historical review, kept in the repository but not on the site: its links
+# point into src/ and tests/, which the site does not carry.
+exclude_docs: |
+  CODEBASE_REVIEW.md
+  requirements.txt
+
+theme:
+  name: material
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: brown
+      accent: green
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: brown
+      accent: green
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+  features:
+    - navigation.top
+    - content.code.copy
+    - content.action.edit
+
+markdown_extensions:
+  - admonition
+  - pymdownx.details
+  - pymdownx.superfences
+  - pymdownx.highlight
+  - tables
+  - toc:
+      permalink: true
+
+plugins:
+  - search
+
+nav:
+  - Home: index.md
+  - Usage guide: USAGE.md
+  - Design: DESIGN.md
+  - Corpora: CORPORA.md

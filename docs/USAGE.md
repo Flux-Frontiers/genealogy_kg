@@ -232,7 +232,7 @@ install-hooks` wires this into a `pre-commit` hook automatically (below).
 GEDCOM trees -- unlike the benchmark corpora below, these ship *in the repo*
 and are safe to build against directly. Genres span royalty, US presidents,
 corporations, fictional-character trees, religious figures, and more; see
-[corpora/entries/NOTICE.md](../corpora/entries/NOTICE.md) for provenance and
+[corpora/entries/NOTICE.md](https://github.com/Flux-Frontiers/genealogy_kg/blob/main/corpora/entries/NOTICE.md) for provenance and
 licensing. Safety is enforced at the query/pack/MCP boundary (the
 living-person filter, on by default for anyone plausibly still alive), not
 by curating which files are allowed in.

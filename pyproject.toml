@@ -51,7 +51,7 @@ authors = [
 ]
 keywords = ["knowledge-graph", "genealogy", "gedcom", "family-tree", "sqlite-vec", "semantic-search", "kgmodule"]
 classifiers = [
-    "Development Status :: 2 - Pre-Alpha",
+    "Development Status :: 4 - Beta",
     "Intended Audience :: Developers",
     "Intended Audience :: Science/Research",
     "Topic :: Sociology :: Genealogy",
@@ -70,23 +70,6 @@ dependencies = [
     # continuation and the full DATE grammar (ABT, BEF, AFT, BET ... AND,
     # FROM ... TO), none of which is worth reimplementing.
     "ged4py>=0.5.2",
-    # kg_utils.temporal -- the fleet's shared time contract that
-    # birth/death/marriage dates are derived into -- landed in 0.18.0. The
-    # floor sits at 0.18.1 so that every kgmodule-utils declaration in this
-    # file carries the same number, per kgrag_priv/docs/FLEET_STANDARDS.md
-    # ("one package, one floor per repo"): a reader should not have to guess
-    # which of several numbers is the real requirement.
-    # 0.20.0 is a hard requirement, not a preference: snapshots.py sets the
-    # package_name class attribute instead of carrying an __init__ that only
-    # forwarded to super(). 0.19.0 also stopped keying snapshots on the git
-    # tree hash, which this package was still doing on the 0.18.1 floor -- a
-    # release tag passed to `genkg snapshot save` never reached disk as the key.
-    # 0.26.0, the latest release: query() and pack() take their bounds from
-    # the base class, whose shared validators 0.25.0 hardened (item 52).
-    # 0.28.0: export-swift writes its pack with kg_utils.devicepack and reads
-    # the store's vectors with SqliteVecBackend.iter_vectors(), both new there.
-    # 0.29.0: the MCP server is kg_utils.mcp's ([mcp] brings mcp itself),
-    # GenealogyKG.stats() is the fleet stats shape, and LanceDB is gone.
     "kgmodule-utils[semantic,sqlite-vec,mcp]>=0.29.0",
 ]
 

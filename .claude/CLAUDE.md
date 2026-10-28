@@ -38,6 +38,7 @@ prefix with `env -u VIRTUAL_ENV -u POETRY_ACTIVE`.
 | `lint` | `ruff check src tests conftest.py` |
 | `format` | `ruff format src tests conftest.py` |
 | `type` | `ty check src` |
+| `pre-commit` | `pre-commit run --all-files` -- every hook, tests included |
 | `build-kg` | `pycodekg build` + `dockg build` over this repo (needs `--with kg`) |
 | `clean` | remove `__pycache__`, `.pytest_cache`, `dist/`, `build/`, `*.egg-info` |
 | `all` | `setup test lint type` |
@@ -46,6 +47,9 @@ prefix with `env -u VIRTUAL_ENV -u POETRY_ACTIVE`.
 | `famous-kennedy` | same for the Kennedys (66 people) |
 | `famous-royal` | same for `royal92.ged` (1756 people, 30 generations) |
 | `famous-trees` | all three famous-tree demos in sequence |
+| `docs-install` | put mkdocs-material (`docs/requirements.txt`) in `.venv-docs` |
+| `docs` | `mkdocs build --strict` into `site/`; the Docs workflow deploys it to Pages |
+| `docs-serve` | `mkdocs serve` with live reload |
 
 The `famous-*` targets depend on `fetch-corpora`, need the `viz3d` extra
 (`poetry install -E viz3d`), and open a Qt window. They pass `--schematic`

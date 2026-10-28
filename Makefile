@@ -1,5 +1,6 @@
 .PHONY: help setup install test lint format type build-kg clean all \
-	fetch-corpora famous-bronte famous-kennedy famous-royal famous-trees
+	fetch-corpora famous-bronte famous-kennedy famous-royal famous-trees \
+	docs-install docs docs-serve pre-commit
 
 help:
 	@echo "GenealogyKG development commands"
@@ -10,8 +11,12 @@ help:
 	@echo "  make lint       Lint with ruff"
 	@echo "  make format     Format with ruff"
 	@echo "  make type       Type check with ty"
+	@echo "  make pre-commit Run every pre-commit hook on all files"
 	@echo "  make build-kg   Build the PyCodeKG + DocKG indices of this repo"
 	@echo "  make clean      Remove build artifacts"
+	@echo "  make docs-install   Put mkdocs-material in .venv-docs"
+	@echo "  make docs           Build the docs site into site/ (--strict)"
+	@echo "  make docs-serve     Serve the docs site with live reload"
 	@echo "  make famous-trees    Build + open all famous-tree demos below"
 	@echo "  make famous-bronte   The Brontes (9 people; quick smoke test)"
 	@echo "  make famous-kennedy  The Kennedys (66 people)"
@@ -37,6 +42,9 @@ format:
 type:
 	poetry run ty check src
 
+pre-commit:
+	poetry run pre-commit run --all-files
+
 build-kg:
 	poetry run pycodekg build --repo .
 	poetry run dockg build --repo .
@@ -47,6 +55,20 @@ clean:
 	rm -rf dist/ build/ *.egg-info
 
 all: setup test lint type
+
+# The docs site: docs/*.md rendered by mkdocs-material into site/, as the Docs
+# workflow renders it for GitHub Pages. --strict fails on a broken link, so a
+# bad link stops here rather than on the published site.
+DOCS_VENV ?= .venv-docs
+
+docs-install:
+	python3 -m venv $(DOCS_VENV) && $(DOCS_VENV)/bin/pip install -q -r docs/requirements.txt
+
+docs:
+	$(DOCS_VENV)/bin/mkdocs build --strict
+
+docs-serve:
+	$(DOCS_VENV)/bin/mkdocs serve
 
 # ---------------------------------------------------------------------------
 # Famous family trees -- build + open a genkg viz3d demo against a public

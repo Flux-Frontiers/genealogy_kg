@@ -80,7 +80,7 @@ than hide it.
 ## The curated corpus: `corpora/entries/`
 
 `corpora/entries/<genre>/<slug>/` is tracked, not fetched -- see
-[corpora/entries/NOTICE.md](../corpora/entries/NOTICE.md). It supersedes
+[corpora/entries/NOTICE.md](https://github.com/Flux-Frontiers/genealogy_kg/blob/main/corpora/entries/NOTICE.md). It supersedes
 what used to be a hand-picked `corpora/vendored/` of three trees
 (`bronte`, `washington`, `tudor`), each checked person-by-person for
 living-person exposure before being let in. That approach hit its limit at
@@ -97,7 +97,7 @@ submitter (`SUBM`) records withheld by `scripts/scrub_submitters.py`. That's wha
 the corpus grow to its current 97 trees across 10 genres -- `royal92.ged`
 included, per the table below -- without re-doing a person-by-person audit
 of each one. `genkg corpus survey`/`ingest` (see the main
-[README](../README.md#the-curated-corpus)) build and register them; the
+[README](https://github.com/Flux-Frontiers/genealogy_kg/blob/main/README.md#the-curated-corpus)) build and register them; the
 three originally-vendored trees are still in here, at new paths:
 
 | File | People | Root xref |
