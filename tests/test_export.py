@@ -9,6 +9,10 @@ Privacy tests use an invented family written per test: Orrin and Hester
 Vantablack (dead), their son Bartholomew (dead), and his children Zephyrine
 (born 2000, living) and a second Orrin (born 1995, living), who shares his
 grandfather's name.
+
+The house test uses a surname-less family: Terah's three children make him a
+head, so his descent is the house of Terah; his wife Amathlai has no parents
+and no house; and Zimri, living, cannot head one.
 """
 
 from __future__ import annotations
@@ -85,6 +89,87 @@ LIVING_GED = """\
 1 WIFE @E@
 1 CHIL @D@
 1 CHIL @N@
+0 TRLR
+"""
+
+HOUSE_GED = """\
+0 HEAD
+1 GEDC
+2 VERS 5.5.1
+2 FORM LINEAGE-LINKED
+1 CHAR UTF-8
+0 @T@ INDI
+1 NAME Terah //
+1 SEX M
+1 BIRT
+2 DATE 1800
+0 @W@ INDI
+1 NAME Amathlai //
+1 SEX F
+1 BIRT
+2 DATE 1802
+0 @A@ INDI
+1 NAME Abram //
+1 SEX M
+1 BIRT
+2 DATE 1825
+0 @N@ INDI
+1 NAME Nahor //
+1 SEX M
+1 BIRT
+2 DATE 1827
+0 @H@ INDI
+1 NAME Haran //
+1 SEX M
+1 BIRT
+2 DATE 1829
+0 @I@ INDI
+1 NAME Isaac //
+1 SEX M
+1 BIRT
+2 DATE 1850
+0 @J@ INDI
+1 NAME Jacob //
+1 SEX M
+1 BIRT
+2 DATE 1875
+0 @Z@ INDI
+1 NAME Zimri //
+1 SEX M
+1 BIRT
+2 DATE 1990
+0 @Z1@ INDI
+1 NAME Zia //
+1 SEX F
+1 BIRT
+2 DATE 2015
+0 @Z2@ INDI
+1 NAME Zed //
+1 SEX M
+1 BIRT
+2 DATE 2017
+0 @Z3@ INDI
+1 NAME Zev //
+1 SEX M
+1 BIRT
+2 DATE 2019
+0 @F1@ FAM
+1 HUSB @T@
+1 WIFE @W@
+1 CHIL @A@
+1 CHIL @N@
+1 CHIL @H@
+0 @F2@ FAM
+1 HUSB @A@
+1 CHIL @I@
+0 @F3@ FAM
+1 HUSB @I@
+1 CHIL @J@
+0 @F4@ FAM
+1 HUSB @Z@
+1 CHIL @Z1@
+1 CHIL @Z2@
+1 CHIL @Z3@
 0 TRLR
 """
 
@@ -232,6 +317,19 @@ def test_a_placeholder_surname_founds_no_line(tmp_path: Path) -> None:
     assignment, lines = assign_lines(load_graph(kg.store))
     assert assignment["person:B"] == UNKNOWN_LINE
     assert all(line.id[0].isalpha() for line in lines)
+
+
+def test_surname_less_descent_is_cut_into_houses(tmp_path: Path) -> None:
+    kg = _build(_repo_dir(tmp_path), HOUSE_GED, cutoff=100)
+    assignment, lines = assign_lines(load_graph(kg.store))
+    by_id = {line.id: line for line in lines}
+    terah = by_id["terah-T"]
+    assert terah.surname == "Terah"
+    assert terah.founder == "person:T"
+    assert set(terah.members) == {f"person:{x}" for x in "TANHIJ"}
+    # A wife with no parents has no house; a living man heads none.
+    assert assignment["person:W"] == UNKNOWN_LINE
+    assert all(assignment[f"person:{x}"] == UNKNOWN_LINE for x in ("Z", "Z1", "Z2", "Z3"))
 
 
 def test_cross_line_marriages_are_links(sample_kg: GenealogyKG, tmp_path: Path) -> None:
