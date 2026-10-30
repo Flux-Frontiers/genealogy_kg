@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- `export-web` cuts the surname-less remainder of a family into houses, so
+  a file with no surnames (a biblical genealogy) plants as groves instead of one
+  `unknown` line. A house is named for its head, the father (or, with no
+  father recorded, the mother) of at least three children, and holds their
+  descent, father first, down to the next head. Families with surnames
+  export unchanged.
+
 ### Changed
 
 - Development status is now Beta (PyPI classifier `4 - Beta`), and the

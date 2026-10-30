@@ -33,8 +33,12 @@ is a cross-tree link (the orchard's marriage roads). Every person is in
 exactly one line, which is what the Swift pack's single ``genre`` column needs.
 A person with no recorded surname (a redacted living person, or a placeholder
 such as ``(-----)``) takes the line of a parent, the father first, as surnames
-usually pass; anyone left over goes to the ``unknown`` line, which no
-cross-line link touches.
+usually pass. A file with no surnames at all, such as the Bible's, would leave
+everyone over, so the remainder is cut into houses: a house is named for its
+head, a person who is the father (or, with no father recorded, the mother) of
+at least ``HOUSE_CHILDREN`` children, and holds their descent, father first
+again, down to the next head. Anyone still left
+over goes to the ``unknown`` line, which no cross-line link touches.
 
 Author: Eric G. Suchanek, PhD
 License: Elastic 2.0
@@ -66,6 +70,9 @@ EXPORT_FORMAT_VERSION: Final[int] = 1
 
 #: Line id for people no surname or parent places in a line.
 UNKNOWN_LINE: Final[str] = "unknown"
+# Children it takes to head a house, among people with no surname above them:
+# counted father first, so a patriarch's wife heads no house of her own.
+HOUSE_CHILDREN: Final[int] = 3
 
 #: Names shorter than this are not scanned for: a three-letter name matches
 #: inside ordinary words and would refuse every export.
@@ -345,6 +352,25 @@ def _surname_key(node: dict[str, Any]) -> str | None:
     return surname.casefold() if any(ch.isalpha() for ch in surname) else None
 
 
+def _house_name(node: dict[str, Any]) -> str | None:
+    """Return the name a house takes from its head: their first name, or ``None``.
+
+    The first word of the recorded name, as a surname-less file writes
+    ``Judah (Judas)`` or ``Ruth of Moab``; a word with no letters names nothing.
+    """
+    words = str(node["name"]).split()
+    first = words[0] if words else ""
+    return first if any(ch.isalpha() for ch in first) else None
+
+
+def _parents_father_first(graph: FamilyGraph, people: dict[str, Any], pid: str) -> list[str]:
+    """Return a person's recorded parents, the father first."""
+    return sorted(
+        (p for p in graph.parents.get(pid, []) if p in people),
+        key=lambda p: (str(_meta(people[p]).get("sex", "")).upper() != "M", p),
+    )
+
+
 def _birth_key(node: dict[str, Any]) -> tuple[str, str]:
     """Sort key: earliest recorded date first, undated last, then id."""
     return (str(_meta(node).get("occurred_start") or "9999"), node["id"])
@@ -360,8 +386,9 @@ class Line:
     """One family line: the people born with one surname, joined by descent.
 
     :param id: Stable id, ``<surname-slug>-<founder xref>``, or ``unknown``.
-    :param surname: Display surname.
-    :param founder: Person id of the earliest member with no parent in the line.
+    :param surname: Display surname, or a house head's first name.
+    :param founder: Person id of the earliest member with no parent in the line
+        (a house's head).
     :param members: Person ids in the line, founder first.
     """
 
@@ -404,15 +431,48 @@ def assign_lines(graph: FamilyGraph) -> tuple[dict[str, str], list[Line]]:
         for pid in sorted(people):
             if group[pid] is not None:
                 continue
-            parents = sorted(
-                (p for p in graph.parents.get(pid, []) if p in people),
-                key=lambda p: (str(_meta(people[p]).get("sex", "")).upper() != "M", p),
-            )
-            for parent in parents:
+            for parent in _parents_father_first(graph, people, pid):
                 if group[parent] is not None:
                     group[pid] = group[parent]
                     changed = True
                     break
+
+    # What is left has no surname anywhere above it. Cut it into houses: a
+    # head is a dead person who is the first parent, father first, of
+    # HOUSE_CHILDREN or more children, and a house is their descent, father
+    # first, down to the next head.
+    ungrouped = {pid for pid in people if group[pid] is None}
+    headed: Counter[str] = Counter()
+    for pid in ungrouped:
+        parents = _parents_father_first(graph, people, pid)
+        if parents:
+            headed[parents[0]] += 1
+    heads = {
+        pid
+        for pid in ungrouped
+        if not _is_living(people[pid])
+        and _house_name(people[pid])
+        and headed[pid] >= HOUSE_CHILDREN
+    }
+    house_of: dict[str, str | None] = {}
+
+    def house(pid: str) -> str | None:
+        if pid in heads:
+            return pid
+        if pid not in house_of:
+            house_of[pid] = None
+            for parent in _parents_father_first(graph, people, pid):
+                if parent in ungrouped and house(parent):
+                    house_of[pid] = house(parent)
+                    break
+        return house_of[pid]
+
+    house_name: dict[str, str] = {}
+    for pid in sorted(ungrouped):
+        head = house(pid)
+        if head:
+            group[pid] = head
+            house_name[head] = _house_name(people[head]) or ""
 
     members: dict[str, list[str]] = defaultdict(list)
     for pid in sorted(people):
@@ -429,7 +489,9 @@ def assign_lines(graph: FamilyGraph) -> tuple[dict[str, str], list[Line]]:
                 for p in pids
                 if _surname_key(people[p])
             )
-            surname = max(spellings, key=lambda s: (spellings[s], not s.isupper(), s))
+            surname = house_name.get(gid) or max(
+                spellings, key=lambda s: (spellings[s], not s.isupper(), s)
+            )
             in_line = set(pids)
             roots = [p for p in pids if not any(q in in_line for q in graph.parents.get(p, []))]
             founder = min(roots or pids, key=lambda p: _birth_key(people[p]))

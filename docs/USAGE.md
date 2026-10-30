@@ -160,8 +160,12 @@ genkg export-swift --out family-swift --living-cutoff 100 \
   such as `hartwell-I1`. A spouse who married in belongs to their own birth
   line, so a marriage between two lines is a `links` entry (the orchard's
   marriage roads). A person with no surname, a redacted living person among
-  them, takes a parent's line, the father first; anyone left over is in the
-  `unknown` line. Places carry their `WITHIN` parent and an event count.
+  them, takes a parent's line, the father first. What is left with no
+  surname above it is cut into houses, each named for its head, the father
+  (or, with no father recorded, the mother) of at least three children, and
+  holding their descent down to the next head; so a file with no surnames,
+  such as a biblical genealogy, still plants. Anyone still left over is in
+  the `unknown` line. Places carry their `WITHIN` parent and an event count.
 - `people/<xref>.json`: each person's page for the record reader: the prose
   summary, events in date order with places, parents, spouses, children, and
   the GEDCOM record lines with line numbers.

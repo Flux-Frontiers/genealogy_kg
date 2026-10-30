@@ -547,7 +547,10 @@ living namesake of an ancestor, and it is documented rather than guessed at.
 Lines (`assign_lines`) are surnames by birth joined by descent, so every
 person is in one line and the pack's single `genre` column can scope by
 line. Surnames with no letters (`(-----)`, an unrecorded maiden name) group
-nobody. Families take the husband's line in the pack.
+nobody. People with no surname anywhere above them are cut into houses, named
+for a head with at least three children (counted father first) and holding
+the head's descent down to the next head, so a surname-less file still
+plants. Families take the husband's line in the pack.
 
 ## Not in scope
 
