@@ -1,53 +1,38 @@
-# Release Notes -- v0.5.0
+# Release Notes -- v0.6.0
 
-> Released: 2026-10-27
+> Released: 2026-11-02
 
-GenealogyKG now protects living people without being asked to. A build with
-nothing configured redacts anyone with no death or burial record born in the
-last 100 years, and treats people with no usable birth date the same way.
-`pack()` also stops returning the submitter's name, address, phone and email,
-which it leaked before even with redaction on. This changes default behavior,
-hence the minor version.
+GenealogyKG can now plant a family that has no surnames. `export-web` used
+to put everyone without a surname on one line called `unknown`, so a
+biblical genealogy, which records given names only, came out as a single
+grove-less heap. It now cuts that remainder into houses, each named for its
+head, and the orchard has groves again. GenealogyKG also has a
+documentation site, and is now marked Beta.
 
 ## What changed
 
-**Redaction is the default.** An unset `living_cutoff_years` now means 100
-years, and `unknown_birth_policy` defaults to `"redact"`. Before, the filter
-was off unless configured, and even a configured cutoff kept undated people,
-who are about half the people in the curated corpus. Set
-`living_cutoff_years = 0` to turn redaction off for a private store.
-`export-web` and `export-swift` pick up the same default.
+**Houses for the surname-less.** A house is named for its head: the father,
+or with no father recorded the mother, of at least three children. It holds
+their descent, father first, down to the next head. Families with surnames
+export exactly as before, so an existing orchard does not move.
 
-**Submitter records stay out of `pack()`.** Most GEDCOM files carry a `SUBM`
-record naming whoever compiled them, often with a home address and email. It
-sits just above the first person in the file, inside that person's snippet
-padding, so `pack()` returned it. `pack()` now clips it whether or not
-redaction is on.
+**A documentation site.** The guides under `docs/` are published at
+https://flux-frontiers.github.io/genealogy_kg/, built with mkdocs-material.
+Pull requests build it with `--strict`, and main deploys it to GitHub Pages.
+`make docs-serve` previews it locally.
 
-**The committed corpus is scrubbed.** The 97 public trees in
-`corpora/entries/` came with their compilers' contact details. The new
-`scripts/scrub_submitters.py` cuts each submitter record to
-`1 NAME Withheld`; 88 trees are committed scrubbed, `fetch_corpora.sh` scrubs
-everything it fetches, and a test fails if a committed tree is not scrubbed.
+**Beta.** The PyPI classifier is now `4 - Beta`, and the README's status note
+says only what works today.
 
-**Two exposures, documented apart.** The living-person filter governs what
-the tool returns. It does nothing for the GEDCOM files in the repository,
-which anyone can read. The README's new "What this repository holds" section
-and the design docs now say so.
+**Security.** The `viz3d` extra floors quiltwright at 0.17.0, the first
+quiltwright that floors Pillow at 13.0.0, so the extra cannot pull in the
+vulnerable 12.x line. The lock moves Pillow, Streamlit, certifi, filelock,
+setuptools and virtualenv to patched releases.
 
 ## Upgrading
 
-Rebuild every store. A store built before 0.5.0 keeps its unredacted nodes
-until rebuilt, and stores over `corpora/entries/` also return misaligned
-`pack()` snippets, because the scrub shifted line numbers:
-
-```bash
-genkg corpus ingest --force-build --no-register
-```
-
-If you relied on redaction being off, add `living_cutoff_years = 0` under
-`[tool.genealogykg]` in `pyproject.toml`. `GedcomExtractor` used directly is
-unchanged: it redacts nobody unless given a cutoff.
+`pip install -U genealogy-kg`. Re-run `genkg export-web` on a surname-less
+file to get its houses; files with surnames need nothing.
 
 ---
 
