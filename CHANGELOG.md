@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-02
+
 ### Added
 
 - `export-web` cuts the surname-less remainder of a family into houses, so
@@ -15,20 +17,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   father recorded, the mother) of at least three children, and holds their
   descent, father first, down to the next head. Families with surnames
   export unchanged.
-
-### Changed
-
-- Development status is now Beta (PyPI classifier `4 - Beta`), and the
-  README's status note is cut down to what works today.
-
-### Added
-
 - A documentation site at https://flux-frontiers.github.io/genealogy_kg/:
   `docs/*.md` rendered by mkdocs-material (`mkdocs.yml`, a new
   `docs/index.md` home page), built `--strict` on pull requests and deployed
   to GitHub Pages from main by `.github/workflows/docs.yml`. `make
   docs-install`, `make docs` and `make docs-serve` build it locally.
 
+### Changed
+
+- Development status is now Beta (PyPI classifier `4 - Beta`), and the
+  README's status note is cut down to what works today.
+
+### Security
+
+- **The `viz3d` extra floors quiltwright at 0.17.0**, the first quiltwright
+  release that floors Pillow at 13.0.0, so the extra cannot pull Pillow
+  12.3.0 and its 41 advisories in through it.
+- **Lock refresh** (#35): Pillow 13.0.0, Streamlit 1.66.1, certifi
+  2026.10.23, filelock 4.2.7, setuptools 84.2.1 and virtualenv 21.15.2;
+  quiltwright 0.17.0.
 ## [0.5.0] - 2026-10-27
 
 ### Changed
