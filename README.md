@@ -1,3 +1,7 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/Flux-Frontiers/genealogy_kg/main/assets/genealogykg_banner.png" alt="GenealogyKG" width="720"/>
+</p>
+
 # GenealogyKG
 
 [![Python](https://img.shields.io/badge/python-3.12%20%7C%203.13-blue.svg)](https://www.python.org/)
