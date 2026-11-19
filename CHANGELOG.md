@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- **An Art Techno logo.** The hourglass: the root person is the die,
+  ancestors widen above in copper and descendants below in gold, with the
+  tagline LINEAGE AS A GRAPH. `scripts/build_logo.py` draws the mark, a 64 px
+  icon and a banner as SVG under `assets/` and writes the PNGs. The README
+  shows the banner at the top, by absolute raw URL so PyPI shows it too, and
+  the docs site shows the icon as its header logo and favicon
+  (`docs/assets/`, set in `mkdocs.yml`).
+
 ## [0.6.0] - 2026-11-02
 
 ### Added
