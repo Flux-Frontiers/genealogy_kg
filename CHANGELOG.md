@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-24
+
 ### Added
 
 - **`genkg status` says when a GEDCOM changed since the build.** A single
@@ -25,6 +27,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   shows the banner at the top, by absolute raw URL so PyPI shows it too, and
   the docs site shows the icon as its header logo and favicon
   (`docs/assets/`, set in `mkdocs.yml`).
+
+### Changed
+
+- **Dependencies.** The kgmodule-utils floor is 0.32.0, for
+  `stale_sources()`. The lock carries kgmodule-utils 0.32.0 and kg-rag 0.19.2
+  (the `adapter` extra), written with Poetry 2.4.3, and
+  `tests/test_lock_markers.py` fails if the lock would install two versions
+  of a package on Linux, macOS or Windows.
 
 ## [0.6.0] - 2026-11-02
 

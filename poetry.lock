@@ -1475,21 +1475,20 @@ referencing = ">=0.31.0"
 
 [[package]]
 name = "kg-rag"
-version = "0.17.2"
+version = "0.19.2"
 description = "Orchestration layer for the KGRAG(tm) components."
 optional = true
 python-versions = "<3.14,>=3.12"
 groups = ["main"]
 markers = "extra == \"adapter\""
 files = [
-    {file = "kg_rag-0.17.2-py3-none-any.whl", hash = "sha256:76b04155cc67158789d06ab7cb3b15491a02cd66cc19e5dd36c9a2b91f0f0e41"},
-    {file = "kg_rag-0.17.2.tar.gz", hash = "sha256:97b3a79e7565716903e2adf9531bdf1c6b354f4de258c2202a2a5d26348f77c6"},
+    {file = "kg_rag-0.19.2-py3-none-any.whl", hash = "sha256:93e088a48f0db10eeca6ef21ef1eeec92f9548149ce454f5ddaa4b9d64dfe527"},
+    {file = "kg_rag-0.19.2.tar.gz", hash = "sha256:e64eb9b3453d1ebba06267dfdc8351261dc42536a9150d0fd13728d09a70cefd"},
 ]
 
 [package.dependencies]
 click = ">=8.1.0"
-kgmodule-utils = ">=0.27.0"
-mcp = ">=1.0.0,<2"
+kgmodule-utils = {version = ">=0.30.2", extras = ["mcp"]}
 numpy = ">=1.24.0"
 pandas = ">=2.0.0"
 rich = ">=14.3.3,<15"
@@ -1499,14 +1498,16 @@ torch = ">=2.5.1"
 transformers = ">=5.5.0,<6"
 
 [package.extras]
-all = ["PyQt5 (>=5.15.0)", "connectome-kg (>=0.8.1)", "diary-kg (>=0.100.0)", "doc-kg (>=0.27.0)", "firecrawl-anydoc (>=0.1.9)", "ftree-kg (>=0.17.0)", "markdown (>=3.6)", "memory-kg (>=0.12.0)", "param (>=2.0.0)", "plotly (>=5.14.0)", "pycode-kg (>=0.28.1)", "pymupdf (>=2.0)", "pyvis (>=0.3.2)", "pyvista (>=0.44.0)", "pyvistaqt (>=0.11.0)", "streamlit (>=1.35.0)", "trame-vtk (>=2.0.0)", "vault-kg (>=0.3.0)"]
-connectome = ["connectome-kg (>=0.8.1)"]
-diary = ["diary-kg (>=0.100.0)"]
-filetree = ["ftree-kg (>=0.17.0)"]
-ingest = ["kgmodule-utils[ingest] (>=0.27.1)"]
-kg = ["doc-kg (>=0.27.0)", "memory-kg (>=0.12.0)", "pycode-kg (>=0.28.1)"]
+all = ["PyQt5 (>=5.15.0)", "anthropic (>=2.0.0)", "connectome-kg (>=0.10.1)", "diary-kg (>=0.101.0)", "doc-kg (>=0.30.0)", "firecrawl-anydoc (>=0.1.9)", "ftree-kg (>=0.18.1)", "httpx (>=0.27.0)", "imagewright (>=0.2.0)", "markdown (>=3.6)", "memory-kg (>=0.13.0)", "openai (>=1.30.0)", "param (>=2.0.0)", "pillow (>=13.0.0)", "plotly (>=5.14.0)", "pycode-kg (>=0.29.3)", "pymupdf (>=2.0)", "pyvis (>=0.3.2)", "pyvista (>=0.44.0)", "pyvistaqt (>=0.11.0)", "streamlit (>=1.35.0)", "trame-vtk (>=2.0.0)", "vault-kg (>=0.6.1)"]
+connectome = ["connectome-kg (>=0.10.1)"]
+diary = ["diary-kg (>=0.101.0)"]
+filetree = ["ftree-kg (>=0.18.1)"]
+imagine = ["imagewright (>=0.2.0)", "kgmodule-utils[synthesis] (>=0.31.0)"]
+imagine-local = ["imagewright (>=0.2.0)", "mflux (>=0.24.0)"]
+ingest = ["kgmodule-utils[ingest] (>=0.30.2)"]
+kg = ["doc-kg (>=0.30.0)", "memory-kg (>=0.13.0)", "pycode-kg (>=0.29.3)"]
 qt = ["PyQt5 (>=5.15.0)"]
-vault = ["vault-kg (>=0.3.0)"]
+vault = ["vault-kg (>=0.6.1)"]
 viz = ["plotly (>=5.14.0)", "pyvis (>=0.3.2)", "streamlit (>=1.35.0)"]
 viz2d = ["PyQt5 (>=5.15.0)"]
 viz3d = ["PyQt5 (>=5.15.0)", "markdown (>=3.6)", "param (>=2.0.0)", "pyvista (>=0.44.0)", "pyvistaqt (>=0.11.0)", "trame-vtk (>=2.0.0)"]
