@@ -215,7 +215,11 @@ totals read straight from each entry's own `.genealogykg/graph.sqlite`, plus
 registration counts from the KGRAG registry when the `adapter` extra is
 installed. If no `corpora/entries/` tree is present -- e.g. a plain
 `--repo`/`--source` dev store -- it falls back to reporting that single
-store's build state, sources and counts instead.
+store's build state, sources and counts instead. That report also says whether
+the GEDCOM files still match the store: `Source files: unchanged since the
+build`, or the files edited since, which `pack` no longer quotes until you
+rebuild. A store built before kgmodule-utils 0.32.0 has no hashes to compare
+and says so.
 
 ## Snapshots
 

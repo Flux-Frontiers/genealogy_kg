@@ -70,7 +70,9 @@ dependencies = [
     # continuation and the full DATE grammar (ABT, BEF, AFT, BET ... AND,
     # FROM ... TO), none of which is worth reimplementing.
     "ged4py>=0.5.2",
-    "kgmodule-utils[semantic,sqlite-vec,mcp]>=0.29.0",
+    # 0.32.0: KGModule.stale_sources(), which `genkg status` reports, and
+    # pack() omitting snippets from a GEDCOM edited since the build.
+    "kgmodule-utils[semantic,sqlite-vec,mcp]>=0.32.0",
 ]
 
 [project.optional-dependencies]
