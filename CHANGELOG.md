@@ -9,6 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- **`genkg status` says when a GEDCOM changed since the build.** A single
+  store's status now ends its sources with one line: `Source files: unchanged
+  since the build`, the files edited or missing since, or that the store has
+  no hashes recorded. With kgmodule-utils 0.32.0, `pack()` omits the snippets
+  of a GEDCOM whose bytes changed since the build instead of serving lines the
+  graph does not describe, which is how a scrub that shifts line numbers
+  (#31) could misalign an old store. Rebuild existing stores to record the
+  hashes (fleet sweep item 97).
+
 - **An Art Techno logo.** The hourglass: the root person is the die,
   ancestors widen above in copper and descendants below in gold, with the
   tagline LINEAGE AS A GRAPH. `scripts/build_logo.py` draws the mark, a 64 px

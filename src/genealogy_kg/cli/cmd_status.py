@@ -67,11 +67,30 @@ def _print_store_status(repo: str, db: str | None) -> None:
             return
 
         stats = flat_stats(kg.stats())
+        drift = kg.stale_sources()
     click.echo(f"Store: {kg.db_path}")
     click.echo(source_line)
+    click.echo(_drift_line(drift))
     click.echo(f"Nodes: {stats['total_nodes']}  Edges: {stats['total_edges']}")
     for kind, count in sorted(stats.get("node_counts", {}).items()):
         click.echo(f"  {kind}: {count}")
+
+
+def _drift_line(drift: dict[str, str] | None) -> str:
+    """One line on whether the GEDCOM files still match the store.
+
+    ``pack()`` omits snippets from a file edited since the build, so this says
+    which files those are (fleet sweep item 97).
+
+    :param drift: :meth:`KGModule.stale_sources` output.
+    :return: The ``Source files:`` line.
+    """
+    if drift is None:
+        return "Source files: no hashes recorded; rebuild to check them"
+    if not drift:
+        return "Source files: unchanged since the build"
+    names = ", ".join(f"{path} ({state})" for path, state in sorted(drift.items()))
+    return f"Source files: {len(drift)} changed since the build: {names}; rebuild"
 
 
 def _print_corpus_status(result: dict[str, Any]) -> None:
